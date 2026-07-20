@@ -19,13 +19,12 @@ func (c *stubCapability) Manifest() v1.Manifest {
 	return v1.Manifest{ID: c.id, Version: "0.0.1", Name: "Stub"}
 }
 
-func (c *stubCapability) Import(ctx context.Context, svc v1.ContentService, caller v1.Caller, query string) (v1.ImportResult, error) {
-	c.imported = query
+func (c *stubCapability) Import(ctx context.Context, svc v1.ContentService, req v1.ImportRequest) (v1.ImportResult, error) {
+	c.imported = req.Query
 	// A real capability would call svc here; the stub only records that it was
-	// handed the surface and a caller, which is all the contract promises.
+	// handed the surface and a request, which is all the contract promises.
 	_ = svc
-	_ = caller
-	return v1.ImportResult{WorkID: v1.NodeID("work-" + query), Items: 1}, nil
+	return v1.ImportResult{WorkID: v1.NodeID("work-" + req.Query), Items: 1}, nil
 }
 
 // TestCapabilityIsImplementableExternally checks the capability surface holds
@@ -38,7 +37,7 @@ func TestCapabilityIsImplementableExternally(t *testing.T) {
 		t.Fatalf("Manifest().ID = %q, want %q", got, "stub")
 	}
 
-	res, err := cap.Import(context.Background(), nil, v1.CallerFromSession("session-1"), "tt1254207")
+	res, err := cap.Import(context.Background(), nil, v1.ImportRequest{Caller: v1.CallerFromSession("session-1"), Query: "tt1254207"})
 	if err != nil {
 		t.Fatalf("Import returned error: %v", err)
 	}

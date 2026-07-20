@@ -19,12 +19,30 @@ type Capability interface {
 	// Platform registers it under and routes imports to.
 	Manifest() Manifest
 
-	// Import sources the content named by query and reflects it into the
-	// Platform through svc, acting as caller throughout. It returns what it
-	// did so the invoker (or a test) can see the shape without re-reading the
-	// graph. Errors carry a Platform error category, since every service call
-	// it makes does.
-	Import(ctx context.Context, svc ContentService, caller Caller, query string) (ImportResult, error)
+	// Import sources the content named by the request and reflects it into the
+	// Platform through svc, acting as the request's Caller throughout. It
+	// returns what it did so the invoker (or a test) can see the shape without
+	// re-reading the graph. Errors carry a Platform error category, since every
+	// service call it makes does.
+	Import(ctx context.Context, svc ContentService, req ImportRequest) (ImportResult, error)
+}
+
+// ImportRequest is what the Platform hands a capability for one invocation. It
+// is a struct rather than a parameter list so the surface can grow — the
+// module system adds to what a module receives (settings now; more as the
+// system matures) without breaking the interface each time.
+type ImportRequest struct {
+	// Caller is the principal the capability acts as (ADR 0017); it forwards
+	// this to every service call.
+	Caller Caller
+	// Query names what to source, in a form the module defines.
+	Query string
+	// Settings is the module's user-managed configuration document — the
+	// opaque JSON a user set for this module through the Platform (an addon
+	// list, an API key). The Platform stores and hands it back without
+	// interpreting it; the module owns its meaning. It is an empty object
+	// ({}) when the user has set nothing.
+	Settings []byte
 }
 
 // Manifest is a Module's declaration of identity. It is deliberately minimal —
