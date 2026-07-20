@@ -20,11 +20,11 @@ func (c *stubCapability) Manifest() v1.Manifest {
 }
 
 func (c *stubCapability) Import(ctx context.Context, svc v1.ContentService, req v1.ImportRequest) (v1.ImportResult, error) {
-	c.imported = req.Query
+	c.imported = req.Ref.NativeID
 	// A real capability would call svc here; the stub only records that it was
 	// handed the surface and a request, which is all the contract promises.
 	_ = svc
-	return v1.ImportResult{WorkID: v1.NodeID("work-" + req.Query), Items: 1}, nil
+	return v1.ImportResult{WorkID: v1.NodeID("work-" + req.Ref.NativeID), Items: 1}, nil
 }
 
 // TestCapabilityIsImplementableExternally checks the capability surface holds
@@ -37,7 +37,11 @@ func TestCapabilityIsImplementableExternally(t *testing.T) {
 		t.Fatalf("Manifest().ID = %q, want %q", got, "stub")
 	}
 
-	res, err := cap.Import(context.Background(), nil, v1.ImportRequest{Caller: v1.CallerFromSession("session-1"), Query: "tt1254207"})
+	req := v1.ImportRequest{
+		Caller: v1.CallerFromSession("session-1"),
+		Ref:    v1.ContentRef{Provider: "stub", NativeID: "tt1254207", NativeType: "movie", MediaType: v1.MediaMovie},
+	}
+	res, err := cap.Import(context.Background(), nil, req)
 	if err != nil {
 		t.Fatalf("Import returned error: %v", err)
 	}

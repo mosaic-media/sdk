@@ -1,0 +1,225 @@
+package v1
+
+import "context"
+
+// The provider surface (ADR 0027). A module is not only an importer: a source
+// exposes resources — metadata, search, catalogs, streams — and a module
+// contributes them as typed provider roles the Platform inherits on enable and,
+// by design, other modules resolve. Each role is a small interface a module
+// implements only if it fills it, and declares in its Manifest.Provides.
+//
+// The read roles return the *virtual* content types below (SearchResult,
+// CatalogItem, ContentMetadata) — transient projections, never object-graph
+// nodes (ADR 0028). Only Import (see capability.go) writes nodes, and it does
+// so from a ContentRef a read role produced. Nothing here takes a
+// ContentService: reads do not write.
+
+// Role names a provider role a module fills. It is the vocabulary of
+// Manifest.Provides. A module declares the roles it implements; the Platform
+// checks at composition that a declared role is backed by the matching
+// interface below (a role named but not implemented is a composition-time
+// error, not a runtime surprise), and resolves providers by role at runtime.
+type Role string
+
+const (
+	// RoleMetadata is backed by MetadataProvider — the addon `meta` resource.
+	RoleMetadata Role = "metadata"
+	// RoleSearch is backed by SearchProvider — the addon `catalog/…/search`
+	// resource.
+	RoleSearch Role = "search"
+	// RoleCatalog is backed by CatalogProvider — the addon `catalog` resource.
+	RoleCatalog Role = "catalog"
+	// RoleStream is backed by StreamProvider — the addon `stream` resource.
+	RoleStream Role = "stream"
+)
+
+// ContentRef identifies a piece of source content that is not (necessarily) in
+// the library yet — the stable handle a virtual result carries so the Platform
+// can dedup it against the library and hand it back to the module to
+// materialise (ADR 0028). It is produced by a read role and consumed by Import.
+type ContentRef struct {
+	// Provider is the id of the capability that produced this ref and can
+	// materialise it — the Manifest.ID the Platform routes Import back to. A
+	// search fans out to many providers, so each result must name its own.
+	Provider string
+	// NativeID is the source's own identifier for the content (an addon's
+	// content id — an IMDB id in Stremio's case). The module owns its meaning;
+	// the Platform never parses it.
+	NativeID string
+	// NativeType is the source's own content type ("movie", "series"), which the
+	// module needs to route and to shape the tree on materialise. Module-owned,
+	// like NativeID.
+	NativeType string
+	// MediaType is the Platform media type this maps to (ADR 0015), for display
+	// and library filtering. The module derives it from NativeType.
+	MediaType MediaType
+	// ExternalScheme and ExternalID are the provider identity the Platform
+	// dedups on: a virtual result whose ExternalID already resolves through
+	// FindContentByExternalID is marked in-library rather than shown as new
+	// (ADR 0028's union). For Stremio these are "imdb" and the IMDB id — the
+	// same pair the module binds the Work under on materialise.
+	ExternalScheme string
+	ExternalID     string
+}
+
+// SearchResult is one candidate a SearchProvider returns — a virtual content
+// item, not a node. It carries enough to render a row and to materialise later
+// (its Ref). InLibrary and NodeID are filled by the Platform when it unions
+// provider results with the library (ADR 0028); a provider leaves them zero.
+type SearchResult struct {
+	Ref    ContentRef
+	Title  string
+	Year   int
+	Poster string
+	// InLibrary is true when the Platform matched this result to a library node.
+	InLibrary bool
+	// NodeID is that node's id when InLibrary, so a client can open it; empty
+	// for a purely virtual result.
+	NodeID NodeID
+}
+
+// Catalog is one collection a CatalogProvider exposes — a *view* the source
+// computes (Popular, Trending), addressed by its native id. It is not persisted
+// and is not a container in the object graph; materialising a catalog copies its
+// items into the library, it does not import the catalog as an object (ADR 0028).
+type Catalog struct {
+	// ID is the source-native catalog id, passed back to CatalogItems.
+	ID string
+	// NativeType is the source content type the catalog lists ("movie",
+	// "series").
+	NativeType string
+	// Name is the human label ("Popular Movies").
+	Name string
+}
+
+// CatalogItem is one entry of a catalog listing — a virtual content item, the
+// same shape and rules as SearchResult (it is what the admin collection browser
+// renders, ADR 0028). InLibrary and NodeID are Platform-filled.
+type CatalogItem struct {
+	Ref       ContentRef
+	Title     string
+	Year      int
+	Poster    string
+	InLibrary bool
+	NodeID    NodeID
+}
+
+// ContentMetadata is the descriptive detail a MetadataProvider resolves for a
+// ContentRef (the `meta` resource) — used to enrich an existing node, and as the
+// detail Import draws on when it materialises. It is deliberately the
+// *descriptive* surface, not the tree: a work's children (seasons, episodes)
+// are materialisation's concern, built inside Import where the source's
+// structure is known, not carried on this flat enrichment DTO.
+type ContentMetadata struct {
+	Ref      ContentRef
+	Title    string
+	Year     int
+	Overview string
+	Poster   string
+	Backdrop string
+	Genres   []string
+}
+
+// StreamLink is one playable location a StreamProvider resolves for a
+// materialised item's ContentRef (the `stream` resource). Location is ready to
+// attach as a Part (ADR 0014): Stremio yields RemoteLocation refs (a direct URL
+// or a magnet), which the Platform snapshots onto the curated item (ADR 0028).
+type StreamLink struct {
+	// Label is a human name for the stream ("1080p BluRay").
+	Label    string
+	Location MediaLocation
+}
+
+// MetadataProvider resolves full descriptive metadata for a ContentRef. It
+// backs enrichment (update a node's metadata) and supplies the detail Import
+// draws on. A module fills RoleMetadata by implementing it.
+type MetadataProvider interface {
+	Metadata(ctx context.Context, req MetadataRequest) (ContentMetadata, error)
+}
+
+// MetadataRequest is what the Platform hands MetadataProvider. Every provider
+// request carries the Caller it acts as (ADR 0017) and the module's Settings
+// (ADR 0021) — the same two the Platform hands Import — plus the role's params.
+type MetadataRequest struct {
+	Caller   Caller
+	Settings []byte
+	Ref      ContentRef
+}
+
+// SearchProvider answers free-text search over the source, returning virtual
+// candidates with no raw id needed. A module fills RoleSearch by implementing it.
+type SearchProvider interface {
+	Search(ctx context.Context, req SearchRequest) (SearchResponse, error)
+}
+
+// SearchRequest carries the query text and an optional media-type filter. Limit
+// is a hint; a provider may return fewer.
+type SearchRequest struct {
+	Caller    Caller
+	Settings  []byte
+	Text      string
+	MediaType MediaType
+	Limit     int
+}
+
+// SearchResponse is a slice wrapper so the surface can grow (paging) without
+// breaking the interface.
+type SearchResponse struct {
+	Results []SearchResult
+}
+
+// CatalogProvider enumerates the source's collections and their items. A module
+// fills RoleCatalog by implementing it.
+type CatalogProvider interface {
+	// Catalogs lists the collections the source exposes.
+	Catalogs(ctx context.Context, req CatalogsRequest) (CatalogsResponse, error)
+	// CatalogItems lists one catalog's entries, addressed by its native id.
+	CatalogItems(ctx context.Context, req CatalogItemsRequest) (CatalogItemsResponse, error)
+}
+
+// CatalogsRequest asks for the source's catalog list; it needs only the caller
+// and settings.
+type CatalogsRequest struct {
+	Caller   Caller
+	Settings []byte
+}
+
+// CatalogsResponse carries the catalog descriptors.
+type CatalogsResponse struct {
+	Catalogs []Catalog
+}
+
+// CatalogItemsRequest addresses one catalog by its native id and type, with a
+// Skip offset for paging through a large collection.
+type CatalogItemsRequest struct {
+	Caller     Caller
+	Settings   []byte
+	CatalogID  string
+	NativeType string
+	Skip       int
+}
+
+// CatalogItemsResponse carries one page of a catalog's items.
+type CatalogItemsResponse struct {
+	Items []CatalogItem
+}
+
+// StreamProvider resolves playable locations for a materialised item's
+// ContentRef. A module fills RoleStream by implementing it.
+type StreamProvider interface {
+	Streams(ctx context.Context, req StreamRequest) (StreamResponse, error)
+}
+
+// StreamRequest names the item to resolve streams for by its ContentRef (for a
+// series episode, the ref's NativeID is the episode id the source uses).
+type StreamRequest struct {
+	Caller   Caller
+	Settings []byte
+	Ref      ContentRef
+}
+
+// StreamResponse carries the resolved locations, best-first as the source ranks
+// them.
+type StreamResponse struct {
+	Streams []StreamLink
+}

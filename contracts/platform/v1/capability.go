@@ -14,14 +14,24 @@ import "context"
 // scanner — and reflects it into the object graph through ContentService,
 // acting as the Caller it is handed (ADR 0017). It owns no schema (ADR 0012):
 // everything it does to the graph goes through the published services.
+//
+// Capability is the base every module implements: identity plus the one write
+// verb, Import. The read side — search, catalogs, metadata, streams — is the
+// optional provider roles in provider.go, which a module additionally
+// implements and declares in Manifest.Provides (ADR 0027). The Platform
+// discovers a module's roles by type-asserting the Capability to each provider
+// interface.
 type Capability interface {
 	// Manifest is the Module's self-declaration — the stable identity the
-	// Platform registers it under and routes imports to.
+	// Platform registers it under and routes imports to, and the roles it
+	// declares.
 	Manifest() Manifest
 
-	// Import sources the content named by the request and reflects it into the
-	// Platform through svc, acting as the request's Caller throughout. It
-	// returns what it did so the invoker (or a test) can see the shape without
+	// Import materialises one virtual content item — named by the request's
+	// Ref, which a read role (search, catalog) produced — into the object graph
+	// through svc, acting as the request's Caller throughout (ADR 0028: import
+	// is the one crossing from the virtual plane to the library). It returns
+	// what it did so the invoker (or a test) can see the shape without
 	// re-reading the graph. Errors carry a Platform error category, since every
 	// service call it makes does.
 	Import(ctx context.Context, svc ContentService, req ImportRequest) (ImportResult, error)
@@ -35,8 +45,11 @@ type ImportRequest struct {
 	// Caller is the principal the capability acts as (ADR 0017); it forwards
 	// this to every service call.
 	Caller Caller
-	// Query names what to source, in a form the module defines.
-	Query string
+	// Ref names the virtual content item to materialise — the handle a read
+	// role produced (ADR 0028). It replaced a free-form query string in v0.4.0:
+	// import is no longer "parse an id from a string" but "materialise this
+	// result". The module reads Ref.NativeID/NativeType to source the detail.
+	Ref ContentRef
 	// Settings is the module's user-managed configuration document — the
 	// opaque JSON a user set for this module through the Platform (an addon
 	// list, an API key). The Platform stores and hands it back without
@@ -45,11 +58,10 @@ type ImportRequest struct {
 	Settings []byte
 }
 
-// Manifest is a Module's declaration of identity. It is deliberately minimal —
-// an id the Platform registers and routes by, a version, and a human-readable
-// name. It grows as the module system needs it (the permissions a module
-// declares, the media types it sources); those are named future additions,
-// not omissions to fix now.
+// Manifest is a Module's declaration of identity and the roles it fills. It
+// grows as the module system needs it (the permissions a module declares, the
+// media types it sources); those are named future additions, not omissions to
+// fix now.
 type Manifest struct {
 	// ID is the stable key the Platform registers the capability under and a
 	// caller names to invoke it. It must be unique across registered modules.
@@ -59,6 +71,13 @@ type Manifest struct {
 	Version string
 	// Name is a human-readable label for the module.
 	Name string
+	// Provides declares the provider roles this module fills (ADR 0027). The
+	// Platform checks at composition that each declared role is backed by the
+	// matching provider interface in provider.go, then resolves providers by
+	// role at runtime. Empty means the module only imports. This is the first
+	// real growth of the manifest shape, and what the media_types registry
+	// (ADR 0015) has waited on.
+	Provides []Role
 }
 
 // ImportResult reports what an Import did. Containers, Items and Parts count
