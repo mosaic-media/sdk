@@ -23,9 +23,11 @@ import v1 "github.com/mosaic-media/mosaic-sdk/contracts/platform/v1"
 
 ## Status
 
-Extracted from `mosaic-platform` as a local dry-run: the Platform and the
-reference capability build against it through a `replace` directive. Cutting
-over to a tagged, `go get`-able version is the remaining publish step.
+Extracted from `mosaic-platform` into a standalone module and published:
+`v0.1.0` carried the content surface, `v0.2.0` added the `Capability`
+interface, and `v0.3.0` added the `ImportRequest` that hands a module its
+settings. The Platform and modules build against it as an ordinary tagged
+dependency.
 
 ## License
 
