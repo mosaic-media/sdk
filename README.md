@@ -26,3 +26,10 @@ import v1 "github.com/mosaic-media/mosaic-sdk/contracts/platform/v1"
 Extracted from `mosaic-platform` as a local dry-run: the Platform and the
 reference capability build against it through a `replace` directive. Cutting
 over to a tagged, `go get`-able version is the remaining publish step.
+
+## License
+
+Apache License, Version 2.0 (see [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE)).
+The SDK is deliberately permissive: it is the contract a Module builds against,
+so a Module author may use it under any license. This is independent of the
+Platform's license (AGPL-3.0 with a Module Linking Exception).

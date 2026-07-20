@@ -1,0 +1,9 @@
+Mosaic SDK
+Copyright 2026 the Mosaic authors
+
+This product is licensed under the Apache License, Version 2.0. A copy of the
+license is in the LICENSE file, and at http://www.apache.org/licenses/LICENSE-2.0
+
+The SDK is the published contract surface between the Mosaic Platform and its
+Modules. It is licensed permissively, and independently of the Platform, so a
+Module may build against it under any license of the Module author's choosing.
