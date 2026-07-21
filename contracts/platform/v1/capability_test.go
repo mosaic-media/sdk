@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	v1 "github.com/mosaic-media/mosaic-sdk/contracts/platform/v1"
+	v1 "github.com/mosaic-media/sdk/contracts/platform/v1"
 )
 
 // stubCapability is the shape a Module implements: it holds only the SDK and

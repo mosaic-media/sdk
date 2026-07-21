@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	v1 "github.com/mosaic-media/mosaic-sdk/contracts/platform/v1"
+	v1 "github.com/mosaic-media/sdk/contracts/platform/v1"
 )
 
 // stubProvider is a module that fills all four provider roles, plus the base

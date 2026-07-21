@@ -13,7 +13,7 @@
 // application services, never stores.
 //
 // This package lives in the standalone SDK module
-// (github.com/mosaic-media/mosaic-sdk), extracted from the Platform repository
+// (github.com/mosaic-media/sdk), extracted from the Platform repository
 // so a Module depends on it exactly as any third party would (ADR 0008). The
 // Platform consumes it as an ordinary module dependency; nothing here imports
 // the Platform.
