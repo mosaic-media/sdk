@@ -31,6 +31,12 @@ const (
 	RoleCatalog Role = "catalog"
 	// RoleStream is backed by StreamProvider — the addon `stream` resource.
 	RoleStream Role = "stream"
+	// RoleSubtitles is backed by SubtitlesProvider — the addon `subtitles`
+	// resource. It is a source role like the others: it resolves subtitle tracks
+	// for an item. The consumer is a player, which does not exist yet — the role
+	// is defined and filled ahead of it so the source is complete (ADR 0037), the
+	// same way a stream location is snapshotted before anything resolves it.
+	RoleSubtitles Role = "subtitles"
 )
 
 // ContentRef identifies a piece of source content that is not (necessarily) in
@@ -166,10 +172,61 @@ type ContentMetadata struct {
 // materialised item's ContentRef (the `stream` resource). Location is ready to
 // attach as a Part (ADR 0014): Stremio yields RemoteLocation refs (a direct URL
 // or a magnet), which the Platform snapshots onto the curated item (ADR 0028).
+// The descriptive fields (ADR 0037) let a future source-picker rank and display
+// candidates; they are best-effort — a source that does not report a field
+// leaves it zero.
 type StreamLink struct {
-	// Label is a human name for the stream ("1080p BluRay").
-	Label    string
+	// Label is a short human name for the stream ("Torrentio").
+	Label string
+	// Title is the source's full descriptive title (the release name), empty when
+	// it only gave a Label.
+	Title string
+	// Quality is a display quality label the source exposes ("1080p", "2160p"),
+	// empty when unknown.
+	Quality string
+	// SizeBytes is the stream's size when the source reports it, 0 otherwise.
+	SizeBytes int64
+	// Seeders is swarm health for a torrent stream, 0 when not a torrent or
+	// unreported.
+	Seeders  int
 	Location MediaLocation
+}
+
+// Subtitle is one subtitle track a SubtitlesProvider resolves for an item (ADR
+// 0037). It is a source projection like a stream location — the Platform does
+// not fetch or store the file; a player consumes it.
+type Subtitle struct {
+	// Language is the track's language as the source labels it (an ISO 639 code
+	// or a display name).
+	Language string
+	// URL is the subtitle file location.
+	URL string
+	// ID is the source's own id for the track, empty when it has none.
+	ID string
+}
+
+// SubtitlesProvider resolves subtitle tracks for a materialised item's
+// ContentRef (the `subtitles` resource). A module fills RoleSubtitles by
+// implementing it. Like StreamProvider it is a source role; the consumer is a
+// player (ADR 0036's deferred playback capability), so a provider may exist
+// before anything consumes it.
+type SubtitlesProvider interface {
+	Subtitles(ctx context.Context, req SubtitlesRequest) (SubtitlesResponse, error)
+}
+
+// SubtitlesRequest names the item to resolve subtitles for by its ContentRef
+// (for a series episode, the ref's NativeID is the episode id the source uses,
+// exactly as StreamRequest does).
+type SubtitlesRequest struct {
+	Caller   Caller
+	Settings []byte
+	Ref      ContentRef
+}
+
+// SubtitlesResponse carries the resolved tracks, best-first as the source ranks
+// them.
+type SubtitlesResponse struct {
+	Subtitles []Subtitle
 }
 
 // MetadataProvider resolves full descriptive metadata for a ContentRef. It
