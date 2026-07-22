@@ -7,6 +7,11 @@
 // application services, the service interface those methods satisfy, and the
 // opaque Caller a capability forwards from its invocation context (ADR 0017).
 //
+// It also holds the module observability surface (telemetry.go, ADR 0059):
+// a Telemetry a module records through, reached ambiently with TelemetryFrom
+// on the context the Platform handed it. The Platform owns the observability
+// plane and implements the interface; a module emits and configures nothing.
+//
 // It deliberately does not hold the store contracts (NodeStore, Tx,
 // StorageAdapter) or the identity and configuration models: those are the
 // Platform's plumbing and stay under internal/. A capability calls
