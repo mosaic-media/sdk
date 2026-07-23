@@ -22,6 +22,13 @@ type Artwork struct {
 	// Poster is portrait key art — the image a card shows. For an episode node
 	// it is the episode still.
 	Poster string `json:"poster,omitempty"`
+	// Landscape is wide key art: the same title treated as a 16:9 card rather
+	// than a portrait poster. It is distinct from Backdrop — a backdrop is
+	// scenery to sit *behind* a hero, this is a composed card image to sit *in*
+	// one, which is what a resume rail wants. Sources differ on whether they
+	// have it: Cinemeta does not, an addon proxying a real artwork database
+	// does, and it is empty rather than substituted when absent.
+	Landscape string `json:"landscape,omitempty"`
 	// Backdrop is landscape art shown behind a hero.
 	Backdrop string `json:"backdrop,omitempty"`
 	// Logo is the clearlogo / title-treatment image, rendered as a hero's title.
@@ -32,5 +39,5 @@ type Artwork struct {
 // tell "this node has stored art" from "this node has none" without inspecting
 // each field.
 func (a Artwork) Empty() bool {
-	return a.Poster == "" && a.Backdrop == "" && a.Logo == ""
+	return a.Poster == "" && a.Landscape == "" && a.Backdrop == "" && a.Logo == ""
 }

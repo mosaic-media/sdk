@@ -79,6 +79,13 @@ never read one back, so it could not see what it had itself created. A
 re-import needing to know which releases were already stored is what finally
 forced it.
 
+**`v0.16.0` adds `Artwork.Landscape`** — wide 16:9 key art, distinct from
+`Backdrop`: a backdrop is scenery to sit *behind* a hero, this is a composed card
+image to sit *in* one, which is what a resume rail wants. Added because a real
+source supplies it and it was being dropped — Cinemeta has no such field, but an
+addon proxying an artwork database returns one alongside the poster. Empty rather
+than substituted when a source has none.
+
 **`v0.15.0` stores artwork on the node** — an `Artwork` value (poster,
 backdrop, logo) on `Node` and on `AddContentWorkCommand` / `AddContentChildCommand`
 ([ADR 0071](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0071-content-artwork-is-stored-on-the-node.md)).
