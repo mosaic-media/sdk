@@ -79,6 +79,23 @@ never read one back, so it could not see what it had itself created. A
 re-import needing to know which releases were already stored is what finally
 forced it.
 
+**`v0.20.0` adds `StreamRequest.Season` and `StreamRequest.Episode`** — neutral
+coordinates for an episode, so a stream provider can be asked about content it
+did not source ([ADR 0073](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0073-stream-resolution-is-decoupled-from-metadata-provenance.md)).
+
+The Ref in that case carries a *shared* external identity (`imdb`, `tvdb`)
+rather than the provider's own id, and the provider composes its native
+addressing from the identity plus these two numbers. That is the point: one real
+source addresses an episode as `tt0903747:1:2`, and a Platform that built that
+string would have a provider's dialect in its kernel. Season and episode are
+facts about television the Platform already models; the format is the module's
+business.
+
+`StreamProvider`'s doc says plainly what follows — a provider asked about
+content it does not recognise returns an empty response and **no error**, since
+failing there would fail a user's import over a title some other source
+described.
+
 **`v0.19.0` adds `SearchContentQuery.AttributesContain`** — a containment filter
 over a node's module-owned `Attributes` document, so a capability can ask
 "which of my works did some module tag *this* way".

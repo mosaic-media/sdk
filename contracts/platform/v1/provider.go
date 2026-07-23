@@ -510,18 +510,45 @@ type CatalogItemsResponse struct {
 	Items []CatalogItem
 }
 
-// StreamProvider resolves playable locations for a materialised item's
-// ContentRef. A module fills RoleStream by implementing it.
+// StreamProvider resolves playable locations for a materialised item.
+//
+// It is called in two situations that look the same and are not. In the first,
+// the module itself materialised the item and the Ref is its own — the case
+// since ADR 0027. In the second, **another module sourced the metadata and this
+// provider is being asked to supply the streams for it** (ADR 0073): the Ref
+// then carries a *shared* external identity (`imdb`, `tvdb`) with no native id
+// at all, and the provider derives its own addressing from that plus the
+// request's Season and Episode.
+//
+// A provider that cannot recognise the identity it was handed returns an empty
+// response and no error. Being asked about content it does not know is normal
+// in the second case, not a failure, and an error there would fail a user's
+// import over a title some other source happened to describe.
 type StreamProvider interface {
 	Streams(ctx context.Context, req StreamRequest) (StreamResponse, error)
 }
 
-// StreamRequest names the item to resolve streams for by its ContentRef (for a
-// series episode, the ref's NativeID is the episode id the source uses).
+// StreamRequest names the item to resolve streams for.
 type StreamRequest struct {
 	Caller   Caller
 	Settings []byte
 	Ref      ContentRef
+	// Season and Episode locate an episode within a series. Both are zero for a
+	// film, and for a series they are 1-based as the source numbers them —
+	// season 0 being the specials a source may or may not have.
+	//
+	// They exist because a stream provider is now asked about content it did not
+	// source ([ADR 0073](0073)), and in that case the Ref carries a *shared*
+	// external identity rather than the provider's own id. A provider whose
+	// episode addressing is derived — "the series' id, a colon, the season, a
+	// colon, the episode" is one real example — composes it from these, because
+	// that format is the provider's business and the Platform must never learn
+	// it.
+	//
+	// A provider that was handed its own native id ignores these and uses the
+	// Ref, exactly as before.
+	Season  int
+	Episode int
 }
 
 // StreamResponse carries the resolved locations, best-first as the source ranks
