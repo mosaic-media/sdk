@@ -65,6 +65,17 @@ never read one back, so it could not see what it had itself created. A
 re-import needing to know which releases were already stored is what finally
 forced it.
 
+**`v0.14.0` opens the per-user tier** — playback state
+([ADR 0046](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0046-playback-state-is-platform-owned.md)):
+`RecordPlaybackProgress`, `SetPlaybackFinished`, and the reads behind resume, a
+watched mark and a continue-watching list. Every other method on this surface
+operates on an install-global graph; a position belongs to a person, and this is
+the first thing here that differs between two users of one Mosaic. It is keyed
+by node rather than Part on purpose — a viewer resumes an episode, not the
+1080p release of an episode — and it lives on the Platform rather than in a
+playback module so it survives swapping one, and so anything that has no
+business resolving bytes can still read progress.
+
 **`v0.13.0` gives modules a voice** — `Telemetry`, reached with
 `TelemetryFrom(ctx)`, and the redaction-classed `Field` that crosses with it
 ([ADR 0059](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0059-modules-observe-through-the-sdk.md)).

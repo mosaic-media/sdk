@@ -72,3 +72,59 @@ per-version changelog, and it is how anyone finds out what a tag contains.
 - Every exported type and function carries a doc comment that says *why*, not
   only what. This is a published contract read by people who cannot read the
   Platform's source; the comments are the documentation.
+
+## The roadmap and the decision records
+
+These rules are identical in every Mosaic repository. They exist because the
+state of the build and the reasons behind it are the two things that rot fastest
+and report nothing when they do — no build fails, no test goes red.
+
+### The roadmap is maintained, not consulted
+
+**`docs/roadmap.md` in [`architecture`](https://github.com/mosaic-media/architecture)
+is the single record of where the build is.** Read it before starting work, and
+**update it in the same session as the change that dates it** — not in a
+follow-up, which does not happen.
+
+- **A slice that lands is marked landed, with what was left out.** "Built" with
+  no qualifier is a claim that the whole slice shipped; if part of it did not,
+  say which part and why in the same sentence.
+- **Implementation that departs from the plan is recorded where it departed.**
+  The roadmap is derived from the code, not from the intention that preceded it,
+  and the surprises are the most valuable thing in it.
+- **Do not restate the roadmap here.** A second copy of "what is built" in a
+  `CLAUDE.md` is how the first copy goes stale unnoticed. This file carries how
+  to work in *this* repository; the roadmap carries what has been done across all
+  of them.
+- **A capability with no client path is not done — it is
+  [owed](https://github.com/mosaic-media/architecture/blob/main/docs/unreachable-capability.md).**
+  If you delete or fail to build a client path to a working service, add its row
+  to that register in the same change.
+
+### Decision records are append-only
+
+An ADR is an account of what was decided and why, at a time. It is evidence, not
+documentation, and its value is that it was not edited afterwards.
+
+- **Never rewrite a record's body to match what was built.** Not to correct it,
+  not to annotate it, not to add "as built, this differs". That pattern turns a
+  record into a running commentary and destroys the thing it is for.
+- **State changes in the `**Status:**` line, and nowhere else.** That is where a
+  record says it is built, built in part (naming the part), or superseded —
+  wholly ("Superseded by ADR N") or partly ("Partly superseded: X was reversed by
+  ADR N; the rest stands").
+- **A changed decision needs a new record that supersedes it.** If the code
+  deliberately does something a record decided against, that is a decision and it
+  is written down as one, with its own Context / Decision / Alternatives /
+  Consequences. Both records then stand: the old one keeps its reasoning, the new
+  one carries the change.
+- **An unbuilt decision is not a superseded one.** "We have not done this yet"
+  belongs in the Status line and the roadmap. Only a genuine reversal earns a new
+  record.
+- **Records live only in `architecture/docs/adr/`**, numbered sequentially in
+  kebab-case. Adding one means adding it to `nav:` in `mkdocs.yml`, and
+  `mkdocs build --strict` must pass.
+
+**If the code and a record disagree, say so rather than quietly picking one.** An
+honest "this is unresolved" is worth more than a plausible reconciliation that
+reads as settled.

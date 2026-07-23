@@ -35,4 +35,24 @@ type ContentService interface {
 	// AttachContentPart, absent until a re-import needed to know what it had
 	// already stored.
 	ListContentParts(ctx context.Context, query ListContentPartsQuery) (ListContentPartsResult, error)
+
+	// Playback state (ADR 0046). These are the first per-user methods on this
+	// surface: everything above operates on an install-global graph, and a
+	// position belongs to a person. A consumer records progress as its invoking
+	// user, so a module can never write another user's position.
+
+	// RecordPlaybackProgress reports where a viewer has got to.
+	RecordPlaybackProgress(ctx context.Context, cmd RecordPlaybackProgressCommand) (RecordPlaybackProgressResult, error)
+	// SetPlaybackFinished marks an item watched or unwatched explicitly,
+	// overriding the derived threshold in either direction.
+	SetPlaybackFinished(ctx context.Context, cmd SetPlaybackFinishedCommand) (SetPlaybackFinishedResult, error)
+	// GetPlaybackState reads one viewer's position in one item.
+	GetPlaybackState(ctx context.Context, query GetPlaybackStateQuery) (GetPlaybackStateResult, error)
+	// ListPlaybackStates reads state for several items at once, so a season of
+	// episodes costs one query rather than one per row.
+	ListPlaybackStates(ctx context.Context, query ListPlaybackStatesQuery) (ListPlaybackStatesResult, error)
+	// ListInProgress reads what a viewer has started and not finished, most
+	// recent first — the continue-watching list, as a query rather than a
+	// client-side fold so every client gets it identically.
+	ListInProgress(ctx context.Context, query ListInProgressQuery) (ListInProgressResult, error)
 }
