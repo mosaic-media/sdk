@@ -39,6 +39,20 @@ which a module implements in its own process, and which protobuf cannot
 express. `sdui` is a wire format consumed by several client languages, where
 codegen is exactly right.
 
+## Build and test
+
+**Everything runs in a container; nothing is built or tested on the host.**
+
+```bash
+docker compose -f docker-compose.test.yml run --rm test
+```
+
+That runs gofmt, `go build`, `go vet` and `go test` against a pinned toolchain.
+There is no hidden dependency and `go build ./...` really is the whole thing —
+the container is here because **this is the surface a third party compiles
+against**, and the only claim worth making about it is that it builds under a
+pinned toolchain rather than under whatever a given machine happens to have.
+
 ## Status
 
 Extracted from `platform` into a standalone module and published. The Platform

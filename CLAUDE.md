@@ -63,12 +63,35 @@ to the Platform's `go.mod` temporarily — then tag, push, bump, and remove the
 Update the **Status** section of `README.md` in the same change: it is the
 per-version changelog, and it is how anyone finds out what a tag contains.
 
+## Everything runs in the container, nothing runs on the host
+
+**Do not run `go build`, `go test`, `go vet` or `gofmt` directly on this
+machine.** This repository's gates run inside its test container:
+
+```bash
+docker compose -f docker-compose.test.yml run --rm test
+```
+
+That runs gofmt, `go build ./...`, `go vet ./...` and `go test ./...` against
+the Go version pinned in the compose file, which must stay equal to the one in
+`go.mod`. Append `bash` for a shell in the same environment.
+
+The reason is weakest here of all the repositories and still worth keeping,
+because of what this module *is*. There is no hidden dependency to supply — no
+database, no ffmpeg, no generator — and `go build ./...` really is the whole
+thing. But **this is the surface a third party compiles against**, and the only
+claim worth making about it is that it builds under a pinned toolchain, not
+under whatever a particular machine happens to have installed. A contract that
+compiles only where its author works is not a contract. Uniformity is also its
+own argument: a rule with an exception in one repository is a rule nobody
+applies reliably in the other six.
+
 ## Workflow
 
 - Commit and push this repository **separately** from `platform`. It is its own
   git repository despite sitting beside the others on disk.
 - **Commit author identity** must be `AdamNi-7080 <anicholls41@gmail.com>`.
-- `gofmt`, `go build ./...`, `go vet ./...` and `go test ./...` before pushing.
+- The test container green before pushing.
 - Every exported type and function carries a doc comment that says *why*, not
   only what. This is a published contract read by people who cannot read the
   Platform's source; the comments are the documentation.

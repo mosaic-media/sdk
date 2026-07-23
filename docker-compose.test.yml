@@ -1,0 +1,54 @@
+# The Mosaic SDK test container.
+#
+#   docker compose -f docker-compose.test.yml run --rm test
+#
+# This is the sanctioned way to run this repository's gates. Nothing is built
+# or tested on the host.
+#
+# The reason here is not a hidden dependency — this module has none, by design,
+# and `go build ./...` is genuinely the whole thing. It is that **this is the
+# surface a third party compiles against**, and the only claim worth making
+# about it is that it builds under a pinned toolchain rather than under
+# whatever happens to be installed on one machine. The Go version below and
+# the one in go.mod are the same statement made twice, and they must agree.
+#
+# For a shell in the same environment:
+#
+#   docker compose -f docker-compose.test.yml run --rm test bash
+name: mosaic-sdk-test
+
+services:
+  test:
+    # Pinned to go.mod's `go` directive. Bump both together.
+    image: golang:1.25-bookworm
+    working_dir: /src/sdk
+    environment:
+      # The bind mount carries a .git the container has no business stat-ing,
+      # and Go fails the build on its ownership rather than degrading.
+      GOFLAGS: -buildvcs=false
+    volumes:
+      - .:/src/sdk
+      # Caches in volumes, not on the bind mount: thousands of small files
+      # written across the host boundary is the slowest shape available.
+      - mosaic-sdk-gomod:/go/pkg/mod
+      - mosaic-sdk-gobuild:/root/.cache/go-build
+    command:
+      - bash
+      - -eu
+      - -o
+      - pipefail
+      - -c
+      - |
+        gofmt -l . > /tmp/unformatted
+        if [ -s /tmp/unformatted ]; then
+          echo "These files are not gofmt-clean:" >&2
+          cat /tmp/unformatted >&2
+          exit 1
+        fi
+        go build ./...
+        go vet ./...
+        go test ./...
+
+volumes:
+  mosaic-sdk-gomod:
+  mosaic-sdk-gobuild:
