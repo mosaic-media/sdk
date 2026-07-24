@@ -257,3 +257,21 @@ module receives an error it can read but not branch on. And `Caller` is still
 something a module forwards rather than inspects — across the boundary it
 becomes a handle the Platform mints per invocation and revokes on return, which
 module code never has to know.
+
+**`host/v0.2.0` — the module's egress is pre-wired to the Platform's proxy.**
+`host.Serve` now routes the process's default HTTP transport through the forward
+proxy the Platform names in `MOSAIC_EGRESS_PROXY`
+([ADR 0064](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0064-extension-module-boundary.md)),
+so an out-of-process module's outbound calls carry the same deny list the
+in-process client had — a module cannot reach the host's own PostgreSQL, its
+LAN, or the cloud metadata endpoint through a URL a user supplied.
+
+This is why the record can call the client "pre-wired" rather than merely
+env-configured. The standard `HTTP_PROXY`/`HTTPS_PROXY` variables are not
+sufficient on their own, and the gap is the target that matters most: Go's
+`ProxyFromEnvironment` hardcodes a bypass for `localhost` and loopback, so a
+module using an ordinary client would reach `127.0.0.1` *around* the proxy.
+Forcing the transport's `Proxy` to always return the proxy URL has no such
+exception. A module that builds a fully custom transport with an explicit nil
+`Proxy` can still bypass it; that residual gap is what OS-level network denial
+(ADR 0064's layer 3) closes.

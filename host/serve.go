@@ -22,6 +22,12 @@ import (
 // is what it is for, and it reaches the Platform's observability plane rather
 // than a stream nobody is reading.
 func Serve(capability v1.Capability) {
+	// Route all of this process's egress through the Platform's proxy before
+	// serving, so a module's first outbound call is already covered (ADR 0064).
+	// Modules build their HTTP clients lazily, at invocation time, well after
+	// this runs.
+	configureEgressProxy()
+
 	goplugin.Serve(&goplugin.ServeConfig{
 		HandshakeConfig: Handshake,
 		Plugins:         ServePluginMap(capability),
