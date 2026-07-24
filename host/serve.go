@@ -28,6 +28,11 @@ type manifestDoc struct {
 	Version  string   `json:"version"`
 	Name     string   `json:"name"`
 	Provides []string `json:"provides"`
+	// Description is the module's own sentence about itself. It travels from
+	// here into the release's manifest.json, the registry's signed index, and the
+	// card a user reads before installing — so it is signed with everything else
+	// the module claims, rather than being prose somebody added downstream.
+	Description string `json:"description,omitempty"`
 }
 
 // Serve runs a module as a plugin process and blocks until the Platform
@@ -81,7 +86,7 @@ func emitManifestIfAsked(capability v1.Capability) bool {
 			continue
 		}
 		m := capability.Manifest()
-		doc := manifestDoc{ID: m.ID, Version: m.Version, Name: m.Name}
+		doc := manifestDoc{ID: m.ID, Version: m.Version, Name: m.Name, Description: m.Description}
 		for _, r := range m.Provides {
 			doc.Provides = append(doc.Provides, string(r))
 		}

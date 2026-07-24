@@ -333,9 +333,10 @@ func identityFromWire(i *modulev1.ExternalIdentity) v1.ExternalIdentity {
 
 func manifestToWire(m v1.Manifest) *modulev1.Manifest {
 	out := &modulev1.Manifest{
-		Id:      m.ID,
-		Version: m.Version,
-		Name:    m.Name,
+		Id:          m.ID,
+		Version:     m.Version,
+		Name:        m.Name,
+		Description: m.Description,
 	}
 	for _, r := range m.Provides {
 		out.Provides = append(out.Provides, string(r))
@@ -348,9 +349,10 @@ func manifestFromWire(m *modulev1.Manifest) v1.Manifest {
 		return v1.Manifest{}
 	}
 	out := v1.Manifest{
-		ID:      m.GetId(),
-		Version: m.GetVersion(),
-		Name:    m.GetName(),
+		ID:          m.GetId(),
+		Version:     m.GetVersion(),
+		Name:        m.GetName(),
+		Description: m.GetDescription(),
 	}
 	for _, r := range m.GetProvides() {
 		out.Provides = append(out.Provides, v1.Role(r))
