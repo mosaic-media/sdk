@@ -71,6 +71,17 @@ type Manifest struct {
 	Version string
 	// Name is a human-readable label for the module.
 	Name string
+	// Description is one sentence about what this module IS, in the author's
+	// words — "AIOStreams aggregates many sources behind one instance". It is
+	// shown to a user deciding whether to install it, beside the capabilities
+	// the Platform derives from Provides.
+	//
+	// Only the author can write it. The Platform can say what a module DOES
+	// (the roles are right here), and deliberately does not keep prose about
+	// other people's modules: that table would go stale the day a third party
+	// published one. Optional — a module that says nothing is described by its
+	// capabilities alone.
+	Description string
 	// Provides declares the provider roles this module fills (ADR 0027). The
 	// Platform checks at composition that each declared role is backed by the
 	// matching provider interface in provider.go, then resolves providers by
