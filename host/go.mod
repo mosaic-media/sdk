@@ -4,8 +4,8 @@ go 1.25.0
 
 require (
 	github.com/hashicorp/go-plugin v1.8.0
-	github.com/mosaic-media/contracts v0.14.0
-	github.com/mosaic-media/sdk v0.21.0
+	github.com/mosaic-media/contracts v0.16.0
+	github.com/mosaic-media/sdk v0.22.0
 	google.golang.org/grpc v1.82.1
 )
 
