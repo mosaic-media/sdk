@@ -592,6 +592,21 @@ type CatalogItemsRequest struct {
 // CatalogItemsResponse carries one page of a catalog's items.
 type CatalogItemsResponse struct {
 	Items []CatalogItem
+
+	// HasMore says another page exists after this one.
+	//
+	// It is the provider's statement rather than the Platform's inference,
+	// because only the provider knows: a full page is not evidence of another,
+	// and a Platform guessing from the count asks upstream for a page that does
+	// not exist. The provider usually knows for free — an upstream that reports
+	// a total, or a request for one more item than it returns.
+	//
+	// **False means "this is the last page", and that is what a provider
+	// predating this field says by saying nothing.** The zero value is therefore
+	// the old behaviour exactly: the Platform pages nothing, as it did before.
+	// A provider that has more to give opts in by setting it, and nothing has to
+	// be rewritten to keep working.
+	HasMore bool
 }
 
 // StreamProvider resolves playable locations for a materialised item.
