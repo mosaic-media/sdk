@@ -172,6 +172,12 @@ type EpisodePreview struct {
 	// Released is the source's air/release date as it provides it (an ISO date or
 	// a year), display-only — the Platform does not parse it.
 	Released string
+	// RuntimeMinutes is how long this episode runs, 0 when the source does not
+	// say. Minutes rather than ContentMetadata.Runtime's display string, because
+	// a source states a *per-episode* runtime as a number and a consumer showing
+	// a list of them needs them to read alike — "51 min" beside "0:46" is the
+	// series-level field's problem, not one worth reproducing per row.
+	RuntimeMinutes int
 }
 
 // RelatedItem is one title related to the one being described — a franchise
@@ -329,6 +335,15 @@ type ContentMetadata struct {
 	Logo string
 	// Cast is the top billed cast, best-first as the source ranks it.
 	Cast []Person
+	// Crew is the handful of above-the-line credits a title is known by — its
+	// creators and directors, with the job in Person.Role. Empty for a source
+	// that carries no crew, which is most addons.
+	//
+	// Separate from Cast rather than merged with it because the two are shown
+	// differently and one is bounded: a cast list is a rail of faces and a crew
+	// credit is a line of prose ("Created by X · Directed by Y"). Merging them
+	// would put a director with no headshot into a rail of portraits.
+	Crew []Person
 	// Rating is the source's rating on its own scale (Stremio/IMDB is out of 10),
 	// 0 when unknown.
 	Rating float64
