@@ -348,6 +348,139 @@ func TestSearchRoleRoundTrips(t *testing.T) {
 	}
 }
 
+// stubRicher fills the two roles that carry the fields SDK v0.23.0 and v0.24.0
+// added. It exists for TestLaterSDKFieldsCrossTheBoundary and returns values
+// that are all non-zero, because a zero is what a dropped field looks like.
+type stubRicher struct{ stubCapability }
+
+func (s *stubRicher) Metadata(context.Context, v1.MetadataRequest) (v1.ContentMetadata, error) {
+	return v1.ContentMetadata{
+		Ref:   v1.ContentRef{Provider: "stub", NativeID: "tt0083658", MediaType: v1.MediaMovie},
+		Title: "Blade Runner",
+		Cast:  []v1.Person{{Name: "Harrison Ford", Role: "Rick Deckard"}},
+		Crew:  []v1.Person{{Name: "Ridley Scott", Role: "Director"}},
+		Episodes: []v1.EpisodePreview{{
+			Season: 1, Episode: 1, Title: "Pilot", RuntimeMinutes: 51,
+		}},
+	}, nil
+}
+
+func (s *stubRicher) Catalogs(context.Context, v1.CatalogsRequest) (v1.CatalogsResponse, error) {
+	return v1.CatalogsResponse{}, nil
+}
+
+func (s *stubRicher) CatalogItems(context.Context, v1.CatalogItemsRequest) (v1.CatalogItemsResponse, error) {
+	return v1.CatalogItemsResponse{
+		Items:   []v1.CatalogItem{{Ref: v1.ContentRef{Provider: "stub", NativeID: "x"}}},
+		HasMore: true,
+	}, nil
+}
+
+// TestLaterSDKFieldsCrossTheBoundary pins the three fields that were added to
+// the SDK with no wire representation to carry them.
+//
+// `ContentMetadata.Crew` and `EpisodePreview.RuntimeMinutes` (SDK v0.24.0) and
+// `CatalogItemsResponse.HasMore` (v0.23.0) compiled fine against a module.proto
+// that had no fields for them, so the converters here silently dropped all
+// three: an out-of-process module could populate them and the Platform would
+// receive a zero. Nothing failed, because a dropped field is indistinguishable
+// from a source that did not supply one — which is why this asserts on the far
+// side of a real gRPC round trip rather than on the converters directly.
+//
+// The rule this encodes: a field added to the SDK's virtual-content DTOs needs
+// a `module.proto` field and a line in each direction of the converter, and
+// this test is where forgetting shows up.
+func TestLaterSDKFieldsCrossTheBoundary(t *testing.T) {
+	c := connect(t, &stubRicher{stubCapability{
+		manifest: v1.Manifest{
+			ID:       "stub",
+			Provides: []v1.Role{v1.RoleMetadata, v1.RoleCatalog},
+		},
+	}}, &stubContent{}, nil)
+
+	mp, ok := c.(v1.MetadataProvider)
+	if !ok {
+		t.Fatal("proxy is not a MetadataProvider")
+	}
+	meta, err := mp.Metadata(context.Background(), v1.MetadataRequest{
+		Caller: v1.CallerFromSession("h"),
+	})
+	if err != nil {
+		t.Fatalf("metadata: %v", err)
+	}
+
+	if len(meta.Crew) != 1 {
+		t.Fatalf("Crew did not cross: got %d entries, want 1", len(meta.Crew))
+	}
+	if meta.Crew[0].Name != "Ridley Scott" || meta.Crew[0].Role != "Director" {
+		t.Errorf("Crew garbled: got %+v", meta.Crew[0])
+	}
+	// Cast alongside it, so a converter that merged the two rather than keeping
+	// them separate fails here instead of reading as success.
+	if len(meta.Cast) != 1 || meta.Cast[0].Name != "Harrison Ford" {
+		t.Errorf("Cast did not survive beside Crew: got %+v", meta.Cast)
+	}
+	if len(meta.Episodes) != 1 {
+		t.Fatalf("Episodes: got %d, want 1", len(meta.Episodes))
+	}
+	if meta.Episodes[0].RuntimeMinutes != 51 {
+		t.Errorf("RuntimeMinutes did not cross: got %d, want 51",
+			meta.Episodes[0].RuntimeMinutes)
+	}
+
+	cp, ok := c.(v1.CatalogProvider)
+	if !ok {
+		t.Fatal("proxy is not a CatalogProvider")
+	}
+	items, err := cp.CatalogItems(context.Background(), v1.CatalogItemsRequest{
+		Caller: v1.CallerFromSession("h"),
+	})
+	if err != nil {
+		t.Fatalf("catalog items: %v", err)
+	}
+	if !items.HasMore {
+		t.Error("HasMore did not cross: got false, want true")
+	}
+}
+
+// stubQuietCatalog fills RoleCatalog and never mentions HasMore — a provider
+// written before the field existed.
+type stubQuietCatalog struct{ stubCapability }
+
+func (s *stubQuietCatalog) Catalogs(context.Context, v1.CatalogsRequest) (v1.CatalogsResponse, error) {
+	return v1.CatalogsResponse{}, nil
+}
+
+func (s *stubQuietCatalog) CatalogItems(context.Context, v1.CatalogItemsRequest) (v1.CatalogItemsResponse, error) {
+	return v1.CatalogItemsResponse{
+		Items: []v1.CatalogItem{{Ref: v1.ContentRef{Provider: "stub", NativeID: "x"}}},
+	}, nil
+}
+
+// A provider that says nothing about HasMore must still read as "last page" on
+// the far side. That is the compatibility claim the SDK's doc comment makes —
+// the zero value is the old behaviour — and it is worth a test because the
+// field is a bool: a converter that inverted it would pass the test above.
+func TestHasMoreDefaultsToLastPage(t *testing.T) {
+	c := connect(t, &stubQuietCatalog{stubCapability{
+		manifest: v1.Manifest{ID: "stub", Provides: []v1.Role{v1.RoleCatalog}},
+	}}, &stubContent{}, nil)
+
+	cp, ok := c.(v1.CatalogProvider)
+	if !ok {
+		t.Fatal("proxy is not a CatalogProvider")
+	}
+	out, err := cp.CatalogItems(context.Background(), v1.CatalogItemsRequest{
+		Caller: v1.CallerFromSession("h"),
+	})
+	if err != nil {
+		t.Fatalf("catalog items: %v", err)
+	}
+	if out.HasMore {
+		t.Error("HasMore: got true from a provider that never set it")
+	}
+}
+
 // A role the module does not fill is refused rather than silently returning
 // nothing, so a Platform bug shows up as an error instead of an empty result.
 func TestUnfilledRoleIsRefused(t *testing.T) {

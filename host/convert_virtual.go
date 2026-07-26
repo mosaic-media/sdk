@@ -113,12 +113,13 @@ func personFromWire(p *modulev1.Person) v1.Person {
 
 func episodePreviewToWire(e v1.EpisodePreview) *modulev1.EpisodePreview {
 	return &modulev1.EpisodePreview{
-		Season:    int32(e.Season),
-		Episode:   int32(e.Episode),
-		Title:     e.Title,
-		Overview:  e.Overview,
-		Thumbnail: e.Thumbnail,
-		Released:  e.Released,
+		Season:         int32(e.Season),
+		Episode:        int32(e.Episode),
+		Title:          e.Title,
+		Overview:       e.Overview,
+		Thumbnail:      e.Thumbnail,
+		Released:       e.Released,
+		RuntimeMinutes: int32(e.RuntimeMinutes),
 	}
 }
 
@@ -127,12 +128,13 @@ func episodePreviewFromWire(e *modulev1.EpisodePreview) v1.EpisodePreview {
 		return v1.EpisodePreview{}
 	}
 	return v1.EpisodePreview{
-		Season:    int(e.GetSeason()),
-		Episode:   int(e.GetEpisode()),
-		Title:     e.GetTitle(),
-		Overview:  e.GetOverview(),
-		Thumbnail: e.GetThumbnail(),
-		Released:  e.GetReleased(),
+		Season:         int(e.GetSeason()),
+		Episode:        int(e.GetEpisode()),
+		Title:          e.GetTitle(),
+		Overview:       e.GetOverview(),
+		Thumbnail:      e.GetThumbnail(),
+		Released:       e.GetReleased(),
+		RuntimeMinutes: int(e.GetRuntimeMinutes()),
 	}
 }
 
@@ -237,6 +239,9 @@ func metadataToWire(m v1.ContentMetadata) *modulev1.ContentMetadata {
 	for _, p := range m.Cast {
 		out.Cast = append(out.Cast, personToWire(p))
 	}
+	for _, p := range m.Crew {
+		out.Crew = append(out.Crew, personToWire(p))
+	}
 	for _, e := range m.Episodes {
 		out.Episodes = append(out.Episodes, episodePreviewToWire(e))
 	}
@@ -271,6 +276,9 @@ func metadataFromWire(m *modulev1.ContentMetadata) v1.ContentMetadata {
 	}
 	for _, p := range m.GetCast() {
 		out.Cast = append(out.Cast, personFromWire(p))
+	}
+	for _, p := range m.GetCrew() {
+		out.Crew = append(out.Crew, personFromWire(p))
 	}
 	for _, e := range m.GetEpisodes() {
 		out.Episodes = append(out.Episodes, episodePreviewFromWire(e))

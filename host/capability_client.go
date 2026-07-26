@@ -139,7 +139,7 @@ func (c *capabilityClient) CatalogItems(ctx context.Context, req v1.CatalogItems
 	if err != nil {
 		return v1.CatalogItemsResponse{}, errorFromWire(err)
 	}
-	out := v1.CatalogItemsResponse{}
+	out := v1.CatalogItemsResponse{HasMore: resp.GetHasMore()}
 	for _, i := range resp.GetItems() {
 		out.Items = append(out.Items, catalogItemFromWire(i))
 	}

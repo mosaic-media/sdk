@@ -297,3 +297,22 @@ No source file changed, which is the useful part of the result: twenty-one
 minor versions of `contracts` and two of `sdk` were additive to everything the
 harness touches, and the wire package it imports
 (`gen/mosaic/module/v1`) is byte-identical across the whole range.
+
+**`host/v0.6.0` — three fields the SDK had and the wire could not carry.**
+`ContentMetadata.Crew` and `EpisodePreview.RuntimeMinutes` (`v0.24.0`) and
+`CatalogItemsResponse.HasMore` (`v0.23.0`) were added to the SDK against a
+`module.proto` with no fields to hold them, so the converters here dropped all
+three: an out-of-process module could set them and the Platform received a
+zero. Nothing failed, because a dropped field is indistinguishable from a
+source that did not supply one — and the one module that populates them,
+`module-tmdb`, is compiled into the Platform binary and never crosses this
+boundary, so the gap was invisible from both ends.
+
+`contracts v0.54.0` adds the three wire fields and this release maps them in
+each direction. `TestLaterSDKFieldsCrossTheBoundary` asserts them on the far
+side of a real gRPC round trip rather than on the converters, so the thing it
+proves is that they *arrive*; `TestHasMoreDefaultsToLastPage` pins the
+compatibility claim that a provider which never sets `HasMore` still reads as
+the last page. **A field added to the SDK's virtual-content DTOs needs a
+`module.proto` field and a line in each direction of the converter** — those
+two tests are where forgetting shows up.
