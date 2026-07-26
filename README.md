@@ -284,3 +284,16 @@ in a workflow, where it would drift from the code: a role added in Go appears in
 the published manifest with no second edit. It is the one thing `Serve` prints
 to stdout deliberately, and only in a mode that never serves, so there is no
 go-plugin handshake to corrupt.
+
+**`host/v0.5.0` — the harness compiles against what the Platform ships.** Its
+requires named `contracts v0.16.0` and `sdk v0.22.0` while the Platform shipped
+`contracts v0.53.0` and `sdk v0.24.0`. Nothing failed and nothing was going to:
+minimal version selection raises both in any build that also includes the
+Platform, so the binary that runs was never the one this repository's gate
+compiled. A gate that green-lights a version nobody runs is the failure — the
+requires now name what ships, and the two are the same statement again.
+
+No source file changed, which is the useful part of the result: twenty-one
+minor versions of `contracts` and two of `sdk` were additive to everything the
+harness touches, and the wire package it imports
+(`gen/mosaic/module/v1`) is byte-identical across the whole range.
