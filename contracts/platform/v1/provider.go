@@ -460,6 +460,33 @@ type StreamLink struct {
 	// unreported.
 	Seeders  int
 	Location MediaLocation
+
+	// Container, VideoCodec and AudioCodec are what a candidate needs to carry
+	// for anything downstream to know whether a client can play it at all.
+	// They are named and spelled exactly as on Part, because that is where a
+	// resolved candidate ends up: a consumer copying a link onto a Part should
+	// be moving values across, not translating them.
+	//
+	// A module already knows all three — it parses them at its own boundary
+	// ([ADR 0051](0051)) — and until now had nowhere to put them, so the parse
+	// was narrowed to Quality, SizeBytes and Seeders on the way out and every
+	// candidate arrived saying less than its source had said. An empty field is
+	// not neutral here: the same fields left empty on a Part once had ten
+	// gigabytes of Matroska relayed to a browser that could not decode it.
+	//
+	// **Best-effort, and a guess rather than a measurement.** These come from
+	// release text, which lies, and no parse can see inside a file. What a
+	// release actually contains is settled by probing the bytes before it plays
+	// ([ADR 0050](0050)); what these do is make a candidate list *rankable*
+	// before anything has been fetched. A source that does not report one
+	// leaves it empty, like every other descriptive field here.
+	//
+	// Spell a codec the way ffprobe does — "hevc", "h264", "eac3" — so a parsed
+	// guess and a probed fact are comparable. A container is the bare extension,
+	// lowercased: "mkv", "mp4".
+	Container  string
+	VideoCodec string
+	AudioCodec string
 }
 
 // Subtitle is one subtitle track a SubtitlesProvider resolves for an item (ADR
@@ -491,6 +518,24 @@ type SubtitlesRequest struct {
 	Caller   Caller
 	Settings []byte
 	Ref      ContentRef
+	// Season and Episode locate an episode within a series, and mean exactly
+	// what StreamRequest's do: both zero for a film, 1-based for a series as the
+	// source numbers them, season 0 being specials.
+	//
+	// They are here for StreamRequest's reason ([ADR 0073](0073)) rather than a
+	// new one. A subtitles provider is asked about content it did not source,
+	// so the Ref carries a *shared* external identity and no native id, and a
+	// provider whose episode addressing is derived composes it from these. The
+	// two requests were the same shape until now only by accident: streams grew
+	// the coordinates when the enrichment pass started asking about foreign
+	// content, and subtitles did not, because nothing consumed subtitles yet. A
+	// provider could therefore answer for a film and nothing else.
+	//
+	// A provider handed its own native id ignores these and uses the Ref,
+	// exactly as before — so a provider written before this field existed keeps
+	// working unchanged.
+	Season  int
+	Episode int
 }
 
 // SubtitlesResponse carries the resolved tracks, best-first as the source ranks

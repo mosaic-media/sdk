@@ -378,3 +378,39 @@ converter could drop in a direction the existing assertions do not travel in.
 the failure has its worst shape: nothing errors, the import succeeds, the node
 is written, and the facet the whole slice exists for silently offers fewer
 titles than the library holds.
+
+**`v0.26.0` — a candidate can say what it is, and a subtitle request can name an
+episode.** Two gaps in the source roles, batched into one release because they
+cost the same round of module bumps either way.
+
+*`StreamLink.Container`, `.VideoCodec`, `.AudioCodec`.* A module parses all
+three at its boundary
+([ADR 0051](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0051-modules-as-anti-corruption-layers.md))
+and had nowhere to put them, so the parse was narrowed to `Quality`,
+`SizeBytes` and `Seeders` on the way out of `Streams` and every candidate
+arrived saying less than its source had said. The names are `Part`'s, spelled
+identically, because that is where a resolved candidate ends up — a consumer
+should be moving values across rather than translating them.
+
+They are a **guess, not a measurement**, and the doc comment says so: release
+text lies and no parse can see inside a file, so what a release actually
+contains is still settled by probing the bytes
+([ADR 0050](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0050-probing-and-the-per-stream-playback-decision.md)).
+What they buy is a candidate list that is *rankable* before anything has been
+fetched. Codecs are spelled the way ffprobe spells them — `hevc`, `h264`,
+`eac3` — so a parsed guess and a probed fact are comparable; a container is the
+bare lowercased extension.
+
+*`SubtitlesRequest.Season` and `.Episode`.* The same two coordinates
+`StreamRequest` gained in `v0.20.0`, for
+[ADR 0073](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0073-stream-resolution-is-decoupled-from-metadata-provenance.md)'s
+reason. The two requests matched only by accident: streams grew the coordinates
+when the enrichment pass began asking providers about content they had not
+sourced, and subtitles did not, because nothing consumed subtitles yet. The
+consequence was concrete rather than theoretical — a subtitles provider handed a
+foreign ref could answer for a film and for nothing else, and both modules
+filling the role called their own addressing helper with two zeroes and a
+comment explaining why.
+
+Both are additive and both zero values are the old behaviour exactly, so a
+provider written before this release keeps working unchanged.
