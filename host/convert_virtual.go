@@ -90,14 +90,41 @@ func relatedItemFromWire(i *modulev1.RelatedItem) v1.RelatedItem {
 }
 
 func catalogToWire(c v1.Catalog) *modulev1.Catalog {
-	return &modulev1.Catalog{Id: c.ID, NativeType: c.NativeType, Name: c.Name}
+	out := &modulev1.Catalog{Id: c.ID, NativeType: c.NativeType, Name: c.Name}
+	for _, f := range c.Filters {
+		out.Filters = append(out.Filters, catalogFilterToWire(f))
+	}
+	return out
 }
 
 func catalogFromWire(c *modulev1.Catalog) v1.Catalog {
 	if c == nil {
 		return v1.Catalog{}
 	}
-	return v1.Catalog{ID: c.GetId(), NativeType: c.GetNativeType(), Name: c.GetName()}
+	out := v1.Catalog{ID: c.GetId(), NativeType: c.GetNativeType(), Name: c.GetName()}
+	for _, f := range c.GetFilters() {
+		out.Filters = append(out.Filters, catalogFilterFromWire(f))
+	}
+	return out
+}
+
+func catalogFilterToWire(f v1.CatalogFilter) *modulev1.CatalogFilter {
+	out := &modulev1.CatalogFilter{Name: f.Name, Label: f.Label}
+	for _, o := range f.Options {
+		out.Options = append(out.Options, &modulev1.CatalogFilterOption{Value: o.Value, Label: o.Label})
+	}
+	return out
+}
+
+func catalogFilterFromWire(f *modulev1.CatalogFilter) v1.CatalogFilter {
+	if f == nil {
+		return v1.CatalogFilter{}
+	}
+	out := v1.CatalogFilter{Name: f.GetName(), Label: f.GetLabel()}
+	for _, o := range f.GetOptions() {
+		out.Options = append(out.Options, v1.CatalogFilterOption{Value: o.GetValue(), Label: o.GetLabel()})
+	}
+	return out
 }
 
 func personToWire(p v1.Person) *modulev1.Person {

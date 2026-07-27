@@ -30,6 +30,7 @@ func (s *contentServer) AddContentWork(ctx context.Context, req *modulev1.AddCon
 		ExternalIDs: req.GetExternalIds(),
 		Attributes:  req.GetAttributes(),
 		Artwork:     artworkFromWire(req.GetArtwork()),
+		Genres:      req.GetGenres(),
 	})
 	if err != nil {
 		return nil, errorToWire(err, s.categoryOf)
@@ -144,6 +145,7 @@ func (s *contentServer) SearchContent(ctx context.Context, req *modulev1.SearchC
 		MediaType:         v1.MediaType(req.GetMediaType()),
 		Kind:              nodeKindFromWire(req.GetKind()),
 		AttributesContain: req.GetAttributesContain(),
+		Genres:            req.GetGenres(),
 		Limit:             int(req.GetLimit()),
 	})
 	if err != nil {

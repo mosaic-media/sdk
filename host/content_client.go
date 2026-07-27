@@ -31,6 +31,7 @@ func (c *contentClient) AddContentWork(ctx context.Context, cmd v1.AddContentWor
 		ExternalIds: cmd.ExternalIDs,
 		Attributes:  cmd.Attributes,
 		Artwork:     artworkToWire(cmd.Artwork),
+		Genres:      cmd.Genres,
 	})
 	if err != nil {
 		return v1.AddContentWorkResult{}, errorFromWire(err)
@@ -145,6 +146,7 @@ func (c *contentClient) SearchContent(ctx context.Context, q v1.SearchContentQue
 		MediaType:         string(q.MediaType),
 		Kind:              nodeKindToWire(q.Kind),
 		AttributesContain: q.AttributesContain,
+		Genres:            q.Genres,
 		Limit:             int32(q.Limit),
 	})
 	if err != nil {

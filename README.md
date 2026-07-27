@@ -367,3 +367,14 @@ to narrow.
 Genres are set on a **Work** and empty beneath it. A season and an episode
 belong to their work's genres and do not have their own — the one place this
 differs from artwork, which an episode genuinely does have.
+
+**`host/v0.7.0` — the five fields `v0.25.0` added, mapped in each direction.**
+`contracts v0.57.0` carries the wire fields; this maps them.
+`TestLaterSDKFieldsCrossTheBoundary` grows to cover `Catalog.Filters` on the way
+back and `CatalogItemsRequest.Filters` on the way out — **the first field on
+that request a caller sets rather than a provider answers**, so the first a
+converter could drop in a direction the existing assertions do not travel in.
+`TestGenresCrossTheContentBoundary` does the same for the content service, where
+the failure has its worst shape: nothing errors, the import succeeds, the node
+is written, and the facet the whole slice exists for silently offers fewer
+titles than the library holds.

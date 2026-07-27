@@ -165,6 +165,7 @@ func (s *capabilityServer) CatalogItems(ctx context.Context, req *modulev1.Catal
 		CatalogID:  req.GetCatalogId(),
 		NativeType: req.GetNativeType(),
 		Skip:       int(req.GetSkip()),
+		Filters:    req.GetFilters(),
 	})
 	if err != nil {
 		return nil, errorToWire(err, nil)

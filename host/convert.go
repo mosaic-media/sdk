@@ -445,6 +445,7 @@ func nodeToWire(n v1.Node) *modulev1.Node {
 		ExternalIds:   n.ExternalIDs,
 		Attributes:    n.Attributes,
 		Artwork:       artworkToWire(n.Artwork),
+		Genres:        n.Genres,
 		CreatedAt:     timeToWire(n.CreatedAt),
 		UpdatedAt:     timeToWire(n.UpdatedAt),
 	}
@@ -473,6 +474,7 @@ func nodeFromWire(n *modulev1.Node) v1.Node {
 		ExternalIDs:   n.GetExternalIds(),
 		Attributes:    n.GetAttributes(),
 		Artwork:       artworkFromWire(n.GetArtwork()),
+		Genres:        n.GetGenres(),
 		CreatedAt:     timeFromWire(n.GetCreatedAt()),
 		UpdatedAt:     timeFromWire(n.GetUpdatedAt()),
 	}

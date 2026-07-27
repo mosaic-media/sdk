@@ -50,9 +50,10 @@ func (s *stubCapability) Search(_ context.Context, req v1.SearchRequest) (v1.Sea
 // stubContent is the Platform's ContentService. Only the methods the tests
 // exercise do anything; the rest satisfy the interface.
 type stubContent struct {
-	gotWork  v1.AddContentWorkCommand
-	workErr  error
-	callerIn string
+	gotWork   v1.AddContentWorkCommand
+	gotSearch v1.SearchContentQuery
+	workErr   error
+	callerIn  string
 }
 
 func (s *stubContent) AddContentWork(_ context.Context, cmd v1.AddContentWorkCommand) (v1.AddContentWorkResult, error) {
@@ -68,6 +69,10 @@ func (s *stubContent) AddContentWork(_ context.Context, cmd v1.AddContentWorkCom
 		MediaType: cmd.MediaType,
 		Title:     cmd.Title,
 		Status:    v1.NodeActive,
+		// Echoed rather than fixed, so the assertion covers the return leg as
+		// well as the outbound one: a converter that dropped Genres in only one
+		// direction would otherwise pass.
+		Genres:    cmd.Genres,
 		CreatedAt: time.Date(2026, 7, 24, 12, 0, 0, 0, time.UTC),
 	}}, nil
 }
@@ -90,7 +95,8 @@ func (s *stubContent) BindContentSource(context.Context, v1.BindContentSourceCom
 func (s *stubContent) ResolveContentBinding(context.Context, v1.ResolveContentBindingCommand) (v1.ResolveContentBindingResult, error) {
 	return v1.ResolveContentBindingResult{}, nil
 }
-func (s *stubContent) SearchContent(context.Context, v1.SearchContentQuery) (v1.SearchContentResult, error) {
+func (s *stubContent) SearchContent(_ context.Context, q v1.SearchContentQuery) (v1.SearchContentResult, error) {
+	s.gotSearch = q
 	return v1.SearchContentResult{}, nil
 }
 func (s *stubContent) FindContentByExternalID(context.Context, v1.FindContentByExternalIDQuery) (v1.FindContentByExternalIDResult, error) {
@@ -351,7 +357,14 @@ func TestSearchRoleRoundTrips(t *testing.T) {
 // stubRicher fills the two roles that carry the fields SDK v0.23.0 and v0.24.0
 // added. It exists for TestLaterSDKFieldsCrossTheBoundary and returns values
 // that are all non-zero, because a zero is what a dropped field looks like.
-type stubRicher struct{ stubCapability }
+type stubRicher struct {
+	stubCapability
+	// gotFilters is what CatalogItems was asked with, so the *request* leg is
+	// asserted too. Every field before this one travelled module-to-Platform;
+	// a filter selection travels the other way, and a converter can drop one
+	// direction while carrying the other.
+	gotFilters map[string]string
+}
 
 func (s *stubRicher) Metadata(context.Context, v1.MetadataRequest) (v1.ContentMetadata, error) {
 	return v1.ContentMetadata{
@@ -366,10 +379,17 @@ func (s *stubRicher) Metadata(context.Context, v1.MetadataRequest) (v1.ContentMe
 }
 
 func (s *stubRicher) Catalogs(context.Context, v1.CatalogsRequest) (v1.CatalogsResponse, error) {
-	return v1.CatalogsResponse{}, nil
+	return v1.CatalogsResponse{Catalogs: []v1.Catalog{{
+		ID: "popular", NativeType: "movie", Name: "Popular",
+		Filters: []v1.CatalogFilter{{
+			Name: "genre", Label: "Genre",
+			Options: []v1.CatalogFilterOption{{Value: "28", Label: "Action"}},
+		}},
+	}}}, nil
 }
 
-func (s *stubRicher) CatalogItems(context.Context, v1.CatalogItemsRequest) (v1.CatalogItemsResponse, error) {
+func (s *stubRicher) CatalogItems(_ context.Context, req v1.CatalogItemsRequest) (v1.CatalogItemsResponse, error) {
+	s.gotFilters = req.Filters
 	return v1.CatalogItemsResponse{
 		Items:   []v1.CatalogItem{{Ref: v1.ContentRef{Provider: "stub", NativeID: "x"}}},
 		HasMore: true,
@@ -391,12 +411,13 @@ func (s *stubRicher) CatalogItems(context.Context, v1.CatalogItemsRequest) (v1.C
 // a `module.proto` field and a line in each direction of the converter, and
 // this test is where forgetting shows up.
 func TestLaterSDKFieldsCrossTheBoundary(t *testing.T) {
-	c := connect(t, &stubRicher{stubCapability{
+	impl := &stubRicher{stubCapability: stubCapability{
 		manifest: v1.Manifest{
 			ID:       "stub",
 			Provides: []v1.Role{v1.RoleMetadata, v1.RoleCatalog},
 		},
-	}}, &stubContent{}, nil)
+	}}
+	c := connect(t, impl, &stubContent{}, nil)
 
 	mp, ok := c.(v1.MetadataProvider)
 	if !ok {
@@ -433,13 +454,92 @@ func TestLaterSDKFieldsCrossTheBoundary(t *testing.T) {
 		t.Fatal("proxy is not a CatalogProvider")
 	}
 	items, err := cp.CatalogItems(context.Background(), v1.CatalogItemsRequest{
-		Caller: v1.CallerFromSession("h"),
+		Caller:  v1.CallerFromSession("h"),
+		Filters: map[string]string{"genre": "28"},
 	})
 	if err != nil {
 		t.Fatalf("catalog items: %v", err)
 	}
 	if !items.HasMore {
 		t.Error("HasMore did not cross: got false, want true")
+	}
+
+	// The filter *selection*, on the outbound leg. This is the first field on
+	// this request that a caller sets rather than a provider answers, so it is
+	// the first that a converter could drop in the direction the others do not
+	// travel in.
+	if got := impl.gotFilters["genre"]; got != "28" {
+		t.Errorf("CatalogItemsRequest.Filters did not cross: got %q, want %q", got, "28")
+	}
+
+	// And the filter *declaration*, on the way back.
+	cats, err := cp.Catalogs(context.Background(), v1.CatalogsRequest{Caller: v1.CallerFromSession("h")})
+	if err != nil {
+		t.Fatalf("catalogs: %v", err)
+	}
+	if len(cats.Catalogs) != 1 {
+		t.Fatalf("catalogs: got %d, want 1", len(cats.Catalogs))
+	}
+	filters := cats.Catalogs[0].Filters
+	if len(filters) != 1 || filters[0].Name != "genre" || filters[0].Label != "Genre" {
+		t.Fatalf("Catalog.Filters did not cross: got %+v", filters)
+	}
+	if len(filters[0].Options) != 1 || filters[0].Options[0].Value != "28" || filters[0].Options[0].Label != "Action" {
+		t.Errorf("CatalogFilter.Options did not cross: got %+v", filters[0].Options)
+	}
+}
+
+// TestGenresCrossTheContentBoundary pins the library half of M2 slice 4 to the
+// same rule, on the *other* service: the writes a module makes back into the
+// Platform.
+//
+// A genre that does not survive this trip is the worst shape the failure has.
+// Nothing errors, the import succeeds, the node is written, and the facet the
+// whole slice exists for silently offers fewer titles than the library holds —
+// an omission from a filtered list, which is the one kind of wrong answer a
+// user cannot see.
+func TestGenresCrossTheContentBoundary(t *testing.T) {
+	content := &stubContent{}
+	var committed v1.Node
+	impl := &stubCapability{
+		manifest: v1.Manifest{ID: "stub"},
+		importFn: func(ctx context.Context, svc v1.ContentService, req v1.ImportRequest) (v1.ImportResult, error) {
+			out, err := svc.AddContentWork(ctx, v1.AddContentWorkCommand{
+				Caller:    req.Caller,
+				MediaType: req.Ref.MediaType,
+				Title:     "Blade Runner",
+				Genres:    []string{"Science Fiction", "Thriller"},
+			})
+			if err != nil {
+				return v1.ImportResult{}, err
+			}
+			committed = out.Work
+			if _, err := svc.SearchContent(ctx, v1.SearchContentQuery{
+				Caller: req.Caller, Genres: []string{"Science Fiction"},
+			}); err != nil {
+				return v1.ImportResult{}, err
+			}
+			return v1.ImportResult{WorkID: out.Work.ID, Items: 1}, nil
+		},
+	}
+	c := connect(t, impl, content, nil)
+
+	if _, err := c.Import(context.Background(), nil, v1.ImportRequest{
+		Caller: v1.CallerFromSession("h"),
+		Ref:    v1.ContentRef{Provider: "stub", NativeID: "tt0083658", MediaType: v1.MediaMovie},
+	}); err != nil {
+		t.Fatalf("import: %v", err)
+	}
+
+	if got := content.gotWork.Genres; len(got) != 2 || got[0] != "Science Fiction" || got[1] != "Thriller" {
+		t.Errorf("AddContentWorkCommand.Genres did not cross: got %q", got)
+	}
+	// The return leg: Node.Genres, read back on the committed work.
+	if got := committed.Genres; len(got) != 2 || got[0] != "Science Fiction" {
+		t.Errorf("Node.Genres did not cross back: got %q", got)
+	}
+	if got := content.gotSearch.Genres; len(got) != 1 || got[0] != "Science Fiction" {
+		t.Errorf("SearchContentQuery.Genres did not cross: got %q", got)
 	}
 }
 

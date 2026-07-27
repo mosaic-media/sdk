@@ -135,6 +135,7 @@ func (c *capabilityClient) CatalogItems(ctx context.Context, req v1.CatalogItems
 		CatalogId:  req.CatalogID,
 		NativeType: req.NativeType,
 		Skip:       int32(req.Skip),
+		Filters:    req.Filters,
 	})
 	if err != nil {
 		return v1.CatalogItemsResponse{}, errorFromWire(err)
