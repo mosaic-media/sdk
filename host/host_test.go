@@ -3,6 +3,7 @@ package host
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -134,9 +135,16 @@ func connect(t *testing.T, impl v1.Capability, content v1.ContentService, catego
 	client, server := goplugin.TestPluginGRPCConn(t, false, map[string]goplugin.Plugin{
 		PluginName: p,
 	})
+	// Stop the server *before* closing the client, which is the opposite of the
+	// obvious order and is why: `client.Close()` sends go-plugin's Shutdown RPC,
+	// whose handler calls `GRPCServer.Stop()` on a gRPC handler goroutine while
+	// this goroutine calls it too. Both write `GRPCServer.broker`, unsynchronised
+	// — a data race inside go-plugin that `-race` catches intermittently on any
+	// test using this helper, not only a new one. Stopping first means the
+	// Shutdown RPC finds no server to reach and the handler never runs.
 	t.Cleanup(func() {
-		_ = client.Close()
 		server.Stop()
+		_ = client.Close()
 	})
 
 	raw, err := client.Dispense(PluginName)
@@ -578,6 +586,158 @@ func TestHasMoreDefaultsToLastPage(t *testing.T) {
 	}
 	if out.HasMore {
 		t.Error("HasMore: got true from a provider that never set it")
+	}
+}
+
+// stubSource fills the two source roles SDK v0.26.0 grew fields on. Like
+// stubRicher it answers with values that are all non-zero, because a zero is
+// what a dropped field looks like — and it records the SubtitlesRequest it was
+// handed, because two of the five fields travel Platform-to-module and only the
+// module can report that they arrived.
+// The mutex is not ceremony. The request is recorded on the gRPC server's
+// goroutine and read on the test's, and the RPC's return is not an edge the race
+// detector recognises across go-plugin's in-memory connection — unguarded, this
+// trips `-race` intermittently rather than never.
+type stubSource struct {
+	stubCapability
+
+	mu           sync.Mutex
+	gotSubtitles v1.SubtitlesRequest
+}
+
+func (s *stubSource) subtitlesRequest() v1.SubtitlesRequest {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.gotSubtitles
+}
+
+func (s *stubSource) Streams(_ context.Context, _ v1.StreamRequest) (v1.StreamResponse, error) {
+	return v1.StreamResponse{Streams: []v1.StreamLink{{
+		Label:      "Torrentio",
+		Title:      "Blade.Runner.1982.2160p.UHD.BluRay.x265.DTS-HD.MA.5.1",
+		Quality:    "2160p",
+		SizeBytes:  21_474_836_480,
+		Seeders:    412,
+		Location:   v1.MediaLocation{Scheme: v1.RemoteLocation, Provider: "stub", Ref: "magnet:?xt=stub"},
+		Container:  "mkv",
+		VideoCodec: "hevc",
+		AudioCodec: "dts",
+	}}}, nil
+}
+
+func (s *stubSource) Subtitles(_ context.Context, req v1.SubtitlesRequest) (v1.SubtitlesResponse, error) {
+	s.mu.Lock()
+	s.gotSubtitles = req
+	s.mu.Unlock()
+	return v1.SubtitlesResponse{Subtitles: []v1.Subtitle{{
+		Language: "eng",
+		URL:      "https://example.invalid/s01e02.srt",
+		ID:       "sub-1",
+	}}}, nil
+}
+
+// TestStreamAndSubtitleFieldsCrossTheBoundary pins SDK v0.26.0's five fields to
+// the rule TestLaterSDKFieldsCrossTheBoundary encodes, on the two source roles
+// that carry them.
+//
+// It is the same failure a third time. `StreamLink.Container`, `.VideoCodec` and
+// `.AudioCodec` and `SubtitlesRequest.Season` and `.Episode` compile perfectly
+// against a `module.proto` with no fields to hold them, and the converters then
+// drop them with no error anywhere: a module fills a codec and the Platform
+// receives an empty string, indistinguishable from a source that did not parse
+// one. Which is why this asserts on the far side of a real gRPC round trip
+// rather than on the converters.
+//
+// The two directions are not the same test. The three codec fields travel
+// module-to-Platform and are asserted on what the caller receives; the two
+// subtitle coordinates travel Platform-to-module and can only be asserted by the
+// module reporting what it was handed. A converter that dropped one direction
+// while carrying the other would pass half of this.
+func TestStreamAndSubtitleFieldsCrossTheBoundary(t *testing.T) {
+	impl := &stubSource{stubCapability: stubCapability{
+		manifest: v1.Manifest{
+			ID:       "stub",
+			Provides: []v1.Role{v1.RoleStream, v1.RoleSubtitles},
+		},
+	}}
+	c := connect(t, impl, &stubContent{}, nil)
+
+	sp, ok := c.(v1.StreamProvider)
+	if !ok {
+		t.Fatal("proxy is not a StreamProvider")
+	}
+	streams, err := sp.Streams(context.Background(), v1.StreamRequest{
+		Caller: v1.CallerFromSession("h"), Season: 1, Episode: 2,
+	})
+	if err != nil {
+		t.Fatalf("streams: %v", err)
+	}
+	if len(streams.Streams) != 1 {
+		t.Fatalf("streams: got %d, want 1", len(streams.Streams))
+	}
+	link := streams.Streams[0]
+
+	if link.Container != "mkv" {
+		t.Errorf("Container did not cross: got %q, want %q", link.Container, "mkv")
+	}
+	if link.VideoCodec != "hevc" {
+		t.Errorf("VideoCodec did not cross: got %q, want %q", link.VideoCodec, "hevc")
+	}
+	if link.AudioCodec != "dts" {
+		t.Errorf("AudioCodec did not cross: got %q, want %q", link.AudioCodec, "dts")
+	}
+	// The fields that already crossed, asserted beside the new ones: three
+	// strings appended to one message is exactly the shape a converter garbles
+	// by pairing the wrong field with the wrong value, and that reads as success
+	// unless something pins the originals too.
+	if link.Label != "Torrentio" || link.Quality != "2160p" || link.Seeders != 412 {
+		t.Errorf("existing StreamLink fields did not survive beside the new ones: got %+v", link)
+	}
+	if link.SizeBytes != 21_474_836_480 {
+		t.Errorf("SizeBytes: got %d", link.SizeBytes)
+	}
+	if link.Location.Scheme != v1.RemoteLocation || link.Location.Ref != "magnet:?xt=stub" {
+		t.Errorf("Location did not survive: got %+v", link.Location)
+	}
+
+	sub, ok := c.(v1.SubtitlesProvider)
+	if !ok {
+		t.Fatal("proxy is not a SubtitlesProvider")
+	}
+	subs, err := sub.Subtitles(context.Background(), v1.SubtitlesRequest{
+		Caller:  v1.CallerFromSession("h"),
+		Ref:     v1.ContentRef{ExternalScheme: "imdb", ExternalID: "tt0903747", MediaType: v1.MediaTVSeries},
+		Season:  1,
+		Episode: 2,
+	})
+	if err != nil {
+		t.Fatalf("subtitles: %v", err)
+	}
+
+	// The outbound leg. Nothing the caller can see reports this, so the module
+	// has to: a request that arrives with two zeroes is precisely what the
+	// provider used to be given, and it resolves subtitles for the wrong episode
+	// without erroring.
+	gotReq := impl.subtitlesRequest()
+	if got := gotReq.Season; got != 1 {
+		t.Errorf("SubtitlesRequest.Season did not cross: got %d, want 1", got)
+	}
+	if got := gotReq.Episode; got != 2 {
+		t.Errorf("SubtitlesRequest.Episode did not cross: got %d, want 2", got)
+	}
+	// Beside them, the ref they qualify — coordinates that arrived without the
+	// identity they belong to would address nothing.
+	if got := gotReq.Ref.ExternalID; got != "tt0903747" {
+		t.Errorf("SubtitlesRequest.Ref did not survive beside the coordinates: got %q", got)
+	}
+
+	// And the return leg of the same call, so the role is proven whole rather
+	// than only in the direction the new fields travel.
+	if len(subs.Subtitles) != 1 {
+		t.Fatalf("subtitles: got %d, want 1", len(subs.Subtitles))
+	}
+	if subs.Subtitles[0].Language != "eng" || subs.Subtitles[0].ID != "sub-1" {
+		t.Errorf("Subtitle did not survive: got %+v", subs.Subtitles[0])
 	}
 }
 

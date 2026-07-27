@@ -414,3 +414,17 @@ comment explaining why.
 
 Both are additive and both zero values are the old behaviour exactly, so a
 provider written before this release keeps working unchanged.
+
+**`host/v0.8.0` — those five fields, mapped in each direction.** `contracts
+v0.60.0` carries the wire fields; this maps them.
+`TestStreamAndSubtitleFieldsCrossTheBoundary` asserts every one on the far side
+of a real gRPC round trip — the three codec fields on the way back from the
+provider, the two subtitle coordinates on the way out to it, which can only be
+asserted by the module reporting what it was handed. A converter that dropped
+one direction while carrying the other passes half of that test and fails the
+other half.
+
+**A field added to the SDK needs a `module.proto` field and a line in each
+direction of the converter.** This is the third time that has been forgotten,
+and `TestLaterSDKFieldsCrossTheBoundary` and this test are the two places it
+now shows up.

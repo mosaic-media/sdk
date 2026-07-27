@@ -170,6 +170,8 @@ func (c *capabilityClient) Subtitles(ctx context.Context, req v1.SubtitlesReques
 		Caller:   callerToWire(req.Caller),
 		Settings: req.Settings,
 		Ref:      refToWire(req.Ref),
+		Season:   int32(req.Season),
+		Episode:  int32(req.Episode),
 	})
 	if err != nil {
 		return v1.SubtitlesResponse{}, errorFromWire(err)

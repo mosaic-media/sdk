@@ -321,12 +321,15 @@ func metadataFromWire(m *modulev1.ContentMetadata) v1.ContentMetadata {
 
 func streamLinkToWire(s v1.StreamLink) *modulev1.StreamLink {
 	return &modulev1.StreamLink{
-		Label:     s.Label,
-		Title:     s.Title,
-		Quality:   s.Quality,
-		SizeBytes: s.SizeBytes,
-		Seeders:   int32(s.Seeders),
-		Location:  locationToWire(s.Location),
+		Label:      s.Label,
+		Title:      s.Title,
+		Quality:    s.Quality,
+		SizeBytes:  s.SizeBytes,
+		Seeders:    int32(s.Seeders),
+		Location:   locationToWire(s.Location),
+		Container:  s.Container,
+		VideoCodec: s.VideoCodec,
+		AudioCodec: s.AudioCodec,
 	}
 }
 
@@ -335,12 +338,15 @@ func streamLinkFromWire(s *modulev1.StreamLink) v1.StreamLink {
 		return v1.StreamLink{}
 	}
 	return v1.StreamLink{
-		Label:     s.GetLabel(),
-		Title:     s.GetTitle(),
-		Quality:   s.GetQuality(),
-		SizeBytes: s.GetSizeBytes(),
-		Seeders:   int(s.GetSeeders()),
-		Location:  locationFromWire(s.GetLocation()),
+		Label:      s.GetLabel(),
+		Title:      s.GetTitle(),
+		Quality:    s.GetQuality(),
+		SizeBytes:  s.GetSizeBytes(),
+		Seeders:    int(s.GetSeeders()),
+		Location:   locationFromWire(s.GetLocation()),
+		Container:  s.GetContainer(),
+		VideoCodec: s.GetVideoCodec(),
+		AudioCodec: s.GetAudioCodec(),
 	}
 }
 

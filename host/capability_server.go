@@ -208,6 +208,8 @@ func (s *capabilityServer) Subtitles(ctx context.Context, req *modulev1.Subtitle
 		Caller:   callerFromWire(req.GetCaller()),
 		Settings: req.GetSettings(),
 		Ref:      refFromWire(req.GetRef()),
+		Season:   int(req.GetSeason()),
+		Episode:  int(req.GetEpisode()),
 	})
 	if err != nil {
 		return nil, errorToWire(err, nil)
