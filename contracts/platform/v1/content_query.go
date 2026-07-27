@@ -50,6 +50,21 @@ type SearchContentQuery struct {
 	// modules by design (ADR 0027) — but it means a module should treat its
 	// attribute keys as a published shape rather than a private one.
 	AttributesContain []byte
+	// Genres narrows to nodes carrying *every* genre listed. Empty means no
+	// filter.
+	//
+	// Conjunctive rather than disjunctive because that is what a facet control
+	// means when two chips are lit: "crime *and* comedy", not "either". One
+	// chip — the common case — reads the same under both rules, so the choice
+	// only shows up when a user has expressed a narrowing and the union would
+	// have widened it instead.
+	//
+	// Matching is on the stored strings, which are the source's own words
+	// (Node.Genres). The Platform canonicalises their *form* the way it does
+	// every open vocabulary (ADR 0015) and does not reconcile their meaning, so
+	// "Sci-Fi" and "Science Fiction" are two genres here because they are two
+	// genres in the sources.
+	Genres []string
 	// Limit is clamped to a Platform maximum and defaults when zero or
 	// negative, so a search cannot ask for an unbounded scan.
 	Limit int

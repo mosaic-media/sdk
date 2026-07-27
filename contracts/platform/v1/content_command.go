@@ -23,6 +23,19 @@ type AddContentWorkCommand struct {
 	// capability fills it from the metadata it already fetched so a list surface
 	// need not re-derive art per card; empty is "the source had none".
 	Artwork Artwork
+	// Genres are the work's genres as the source names them, stored on the node
+	// and indexed so the library can be browsed by one.
+	//
+	// **Stored as the source gave them.** Two sources disagree about the words —
+	// one says "Sci-Fi" where another says "Science Fiction" — and this does not
+	// reconcile them, because a synonym table that quietly rewrote a source's
+	// own vocabulary would be the Platform inventing a fact. A library fed by
+	// two sources therefore offers both spellings, which is a true statement
+	// about the library rather than a tidy false one.
+	//
+	// Empty is "the source named none", which reads the same as a work written
+	// before genres were stored. Neither is an error and neither is guessed at.
+	Genres []string
 }
 
 // AddContentWorkResult carries the committed work, whose MediaType is the

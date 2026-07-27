@@ -316,3 +316,54 @@ compatibility claim that a provider which never sets `HasMore` still reads as
 the last page. **A field added to the SDK's virtual-content DTOs needs a
 `module.proto` field and a line in each direction of the converter** — those
 two tests are where forgetting shows up.
+
+**`v0.25.0` — a catalog can be narrowed, and a node carries its genres.** The
+two halves of M2's faceting slice, and they are independent surfaces that
+happen to share a release.
+
+*Provider side.* `CatalogItemsRequest` carried only `Skip`, so browsing a source
+by genre was not expressible at all. `Catalog.Filters` now declares the
+narrowings a catalog accepts — `CatalogFilter`, each with `CatalogFilterOption`
+values — and `CatalogItemsRequest.Filters` carries the selection back, keyed by
+the filter's source-native name.
+
+**The options are declared rather than free text, and that is the design rather
+than a convenience.** A consumer builds its control from the source's own list,
+so a value it sends back is one the source named — the discipline that stops a
+catalog id being mistyped into a rule that silently matches nothing. Value and
+label are separate fields because sources address a genre by numeric id and name
+it in words, and carrying one of them would force either an unreadable control
+or a reverse lookup per request. A provider must **decline** a name or value it
+does not recognise rather than returning the unfiltered page: quietly widening a
+query answers a question nobody asked, and the answer looks right.
+
+`CatalogItemsResponse.HasMore`'s doc now names the **two grades of true** a
+provider can make. An upstream reporting a total supports the exact statement;
+an upstream paging by offset with no total supports only "this page came back
+full", which is the inference the field exists to keep out of the *Platform* and
+which is nonetheless the provider's to make, because only the provider knows its
+page size. Its cost is bounded and visible — a final page that happens to be
+exactly full asks for one more that comes back empty. A provider with neither a
+total nor a known page size still has no basis for either and leaves it false.
+
+*Library side.* `Node.Genres`, `AddContentWorkCommand.Genres` and
+`SearchContentQuery.Genres`. Genres are stored on the node rather than in the
+untyped `Attributes` document for
+[ADR 0071](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0071-content-artwork-is-stored-on-the-node.md)'s
+reason — universal display data, not per-media-type variation — plus one artwork
+does not have: a genre is **filtered** in bulk rather than rendered in bulk, and
+a facet whose source is a cache omits every title the cache has not reached,
+which is an omission from a filtered list and therefore invisible.
+
+Genres are stored **as the source named them**. Two sources disagree about the
+words — one says "Sci-Fi" where another says "Science Fiction" — and nothing
+here reconciles them, because a synonym table quietly rewriting a source's
+vocabulary would be the Platform inventing a fact. A library fed by two sources
+offers both spellings, which is a true statement about the library rather than a
+tidy false one. `SearchContentQuery.Genres` is **conjunctive**: two lit chips on
+a facet mean "crime *and* comedy", and the union would widen where a user asked
+to narrow.
+
+Genres are set on a **Work** and empty beneath it. A season and an episode
+belong to their work's genres and do not have their own — the one place this
+differs from artwork, which an episode genuinely does have.

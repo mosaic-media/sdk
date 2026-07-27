@@ -128,6 +128,60 @@ type Catalog struct {
 	NativeType string
 	// Name is the human label ("Popular Movies").
 	Name string
+	// Filters are the narrowings this catalog accepts, each declared with the
+	// values it accepts. Empty means the catalog takes no narrowing, which is
+	// what every provider said before this field existed.
+	//
+	// **The options are declared rather than free text, and that is the whole
+	// design.** A consumer builds its control from this list, so a value it
+	// sends back is one the source named — the same discipline that stops a
+	// catalog id being mistyped into a library rule that silently matches
+	// nothing. A free-text filter would produce empty pages that are
+	// indistinguishable from a genuinely empty catalog.
+	//
+	// A catalog declares a filter only when it can actually honour it. A source
+	// whose "trending" ranking has no filterable equivalent should leave the
+	// filter off that catalog rather than accept the value and ignore it: a
+	// facet that visibly does not narrow is worse than one that is absent,
+	// because a user can see a missing control and cannot see an ignored one.
+	Filters []CatalogFilter
+}
+
+// CatalogFilter is one narrowing a Catalog accepts — a genre, a streaming
+// service, a decade — with the values it accepts.
+//
+// It is a *declaration*, not a query language. The Platform never interprets
+// Name or Value: it renders the labels, sends back the value that was chosen,
+// and the module turns that into whatever its source actually wants. That is
+// what keeps a source's query vocabulary inside its anti-corruption layer while
+// still letting a Platform screen offer it.
+type CatalogFilter struct {
+	// Name is the filter's source-native parameter name ("genre"). It is opaque
+	// to the Platform and comes straight back on CatalogItemsRequest.Filters.
+	Name string
+	// Label is what a user reads above the control ("Genre"). Sources whose
+	// parameter names are not presentable — and there are some; one popular
+	// catalogue carries a *year* under a parameter called "genre" — are why
+	// this is carried separately rather than derived from Name.
+	Label string
+	// Options are the values the filter accepts, in the order they should be
+	// offered. A filter with no options is dropped by a consumer rather than
+	// rendered as an empty control: it cannot be exercised.
+	Options []CatalogFilterOption
+}
+
+// CatalogFilterOption is one selectable value of a CatalogFilter.
+//
+// Value and Label are separate because they differ in practice: a source may
+// address a genre by a numeric id and name it in words. Carrying only one of
+// them would force either an unreadable control or a reverse lookup in the
+// module on every request.
+type CatalogFilterOption struct {
+	// Value is the source-native token, sent back verbatim. Opaque to the
+	// Platform.
+	Value string
+	// Label is what a user reads ("Action").
+	Label string
 }
 
 // CatalogItem is one entry of a catalog listing — a virtual content item, the
@@ -595,13 +649,26 @@ type CatalogsResponse struct {
 }
 
 // CatalogItemsRequest addresses one catalog by its native id and type, with a
-// Skip offset for paging through a large collection.
+// Skip offset for paging through a large collection and the narrowings the
+// caller selected.
 type CatalogItemsRequest struct {
 	Caller     Caller
 	Settings   []byte
 	CatalogID  string
 	NativeType string
 	Skip       int
+	// Filters narrows the listing, keyed by CatalogFilter.Name and holding one
+	// of that filter's declared Option values. Nil means no narrowing, which is
+	// what every caller sent before this field existed, so a provider that
+	// ignores it behaves exactly as it did.
+	//
+	// **A provider must treat an unrecognised name or value as a request it
+	// cannot serve**, not as one to ignore. Returning the unfiltered page for a
+	// filter it did not understand answers a question nobody asked, and the
+	// answer looks right — the same failure as a group that says "on Netflix"
+	// about a title that left in March. Declining is visible; quietly widening
+	// is not.
+	Filters map[string]string
 }
 
 // CatalogItemsResponse carries one page of a catalog's items.
@@ -621,6 +688,18 @@ type CatalogItemsResponse struct {
 	// the old behaviour exactly: the Platform pages nothing, as it did before.
 	// A provider that has more to give opts in by setting it, and nothing has to
 	// be rewritten to keep working.
+	//
+	// **There are two grades of true, and a provider should know which it is
+	// making.** An upstream that reports a total supports the exact statement.
+	// An upstream that pages by offset and reports no total supports only "this
+	// page came back full, so there is probably another" — which is the
+	// inference this field exists to keep *out of the Platform*, and which is
+	// nonetheless the provider's to make, because only the provider knows its
+	// page size. Its cost is bounded and visible: a final page that happens to
+	// be exactly full asks for one more that comes back empty, and a consumer
+	// that stops on an empty page loses a round trip and shows nothing wrong. A
+	// provider with neither a total nor a known page size has no basis for
+	// either statement and should leave this false.
 	HasMore bool
 }
 

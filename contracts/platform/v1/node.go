@@ -193,7 +193,23 @@ type Node struct {
 	// materialisation and read back here, so a list surface renders it without a
 	// per-card metadata call and a user can later override it. Empty when the
 	// node was written before artwork was stored, or the source had none.
-	Artwork   Artwork
+	Artwork Artwork
+	// Genres are the work's genres as its source named them, stored and indexed
+	// so the library can be browsed by one.
+	//
+	// **It is on the node for the reason artwork is, plus one artwork does not
+	// have.** Like artwork it is universal rather than per-media-type variation,
+	// so it is a typed field and not a corner of the untyped Attributes document
+	// (ADR 0013, ADR 0071). Unlike artwork it is not rendered in bulk — it is
+	// *filtered* in bulk, which is a stronger reason to want it here: a facet
+	// that reads a cache omits every title the cache has not reached yet, and an
+	// omission from a filtered list is invisible.
+	//
+	// **It is set on a Work and empty on everything beneath it.** A season and
+	// an episode belong to their work's genres and do not have their own; a
+	// consumer that wants an episode's genres reads its Work. That is the one
+	// place this differs from artwork, which an episode genuinely does have.
+	Genres    []string
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
