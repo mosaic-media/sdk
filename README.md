@@ -59,6 +59,26 @@ Extracted from `platform` into a standalone module and published. The Platform
 and modules build against it as an ordinary tagged dependency, with no
 `replace`.
 
+**`v0.27.0` — the two fields that let a consumer avoid transcoding.**
+`StreamLink` gains `Width`, `Height` and `HDRFormat`, named and typed as
+`Part`'s so a consumer moves them across rather than translating.
+
+They complete the ranking inputs `v0.26.0` started. A Platform chooses between
+candidates before it fetches anything, and the two outcomes worth avoiding are
+sending a client more pixels than it can display and tone-mapping a stream it
+cannot render — the second being the most expensive thing a Platform does with
+a release. Neither was rankable: `Quality` is a display label rather than a
+number, and nothing carried dynamic range at all, so a source offering an HDR
+and an SDR cut of one title could not be told to prefer the one that plays
+untouched.
+
+The dimensions are recovered rather than invented — **both stream providers
+already derived them from the resolution label and discarded them at this
+boundary**, because `Quality` was the only place a resolution could go.
+`Quality` keeps its meaning as the label a source displayed. `HDRFormat` is a
+new parse in each module; release text names it far less reliably than it names
+resolution, which is why empty means "SDR or not stated" and both rank the same.
+
 `v0.1.0` carried the content surface; `v0.2.0` added the `Capability`
 interface; `v0.3.0` added the `ImportRequest` that hands a module its settings;
 `v0.4.0` added the source provider roles and the virtual content DTOs;

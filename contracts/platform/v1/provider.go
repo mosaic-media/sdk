@@ -487,6 +487,38 @@ type StreamLink struct {
 	Container  string
 	VideoCodec string
 	AudioCodec string
+
+	// Width and Height are the candidate's nominal dimensions, and HDRFormat
+	// its dynamic range. Like the three above they are named and typed exactly
+	// as `Part`'s, so a consumer moves them across rather than translating.
+	//
+	// **They are the two remaining inputs a consumer needs to avoid transcoding
+	// at all**, which is the outcome worth the most. Dimensions decide whether a
+	// candidate is larger than a client can display, and HDRFormat decides
+	// whether it needs tone-mapping — the single most expensive thing a Platform
+	// can do with a release, and until now invisible to any ranking, so a source
+	// offering both an HDR and an SDR cut of the same title could not be told to
+	// prefer the one that plays untouched.
+	//
+	// A module already works the dimensions out: both stream providers derive
+	// them from the resolution label they parse and discarded them here, because
+	// `Quality` was the only place to put a resolution and it is a display
+	// string. `Quality` stays what it is — the label a source showed — and these
+	// carry the numbers a decision is made on.
+	//
+	// **Best-effort and nominal, like everything else here.** "2160p" means
+	// 3840×2160 whatever the release's real aspect, and release text names HDR
+	// far less reliably than it names resolution. The bytes settle it at probe
+	// time ([ADR 0050](0050)); what these do is let a candidate list be ranked
+	// before anything is fetched.
+	//
+	// Spell HDRFormat as `Part` does — "HDR10", "HLG", "DolbyVision" — and leave
+	// it empty for SDR or unknown, which are deliberately the same answer: a
+	// source that does not say is not asserting SDR, and both cases mean "rank
+	// this on what else is known".
+	Width     int
+	Height    int
+	HDRFormat string
 }
 
 // Subtitle is one subtitle track a SubtitlesProvider resolves for an item (ADR
