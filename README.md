@@ -59,6 +59,29 @@ Extracted from `platform` into a standalone module and published. The Platform
 and modules build against it as an ordinary tagged dependency, with no
 `replace`.
 
+**`v0.29.0` — counters and histograms**
+([ADR 0130](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0130-the-module-metric-surface.md)).
+`v1.Telemetry` gains `Count(name, delta, attrs…)` and
+`Measure(name, value, unit, attrs…)`, on the same ambient handle as the log and
+span calls — there is no instrument to construct, hold or thread anywhere.
+
+[ADR 0059](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0059-modules-observe-through-the-sdk.md)
+deliberately published neither, on the grounds that a counter which silently
+discards is worse than no counter at all, and said they would join the surface
+when the Platform could back them. It now can.
+
+**One rule this asks of you that logging does not: metric attributes must be
+low-cardinality.** Every distinct combination of values is a series that lives
+as long as the process, where a log record ages out. An addon id or a status
+code is a dimension; a title, a search term or a URL is not, whatever its
+redaction class — a digest has exactly as many distinct values as the thing it
+digests. The Platform caps how many series a module may create and records that
+it did.
+
+Classification is unchanged and applies to metric attributes exactly as it does
+to log fields. Adding `go.opentelemetry.io/otel/metric` takes the API allowlist
+from three modules to four.
+
 **`v0.28.0` — OpenTelemetry behind the telemetry surface**
 ([ADR 0128](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0128-opentelemetry-is-the-telemetry-implementation.md)).
 **The surface you write against did not change.** `v1.TelemetryFrom(ctx)`,

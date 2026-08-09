@@ -20,13 +20,19 @@ import (
 // collector client. Those are what a *binary* wires (ADR 0128), and a module
 // that could reach them could configure the Platform's observability plane from
 // inside it — the ownership ADR 0059 placed with the Platform and ADR 0128 did
-// not move. Twelve modules come with the OTel SDK against three with the API,
+// not move. Twelve modules come with the OTel SDK against four with the API,
 // and the difference is exactly this boundary.
+//
+// The metric API joined the three in ADR 0130, on the same terms: `metric.Meter`
+// is an interface the Platform hands over, and `metric.MeterProvider` — where a
+// view, a reader or an exporter would be configured — is not reachable from
+// anything a module holds.
 var allowedParentDependencies = map[string]bool{
 	// The API. `otel` itself carries `attribute` and `codes`.
-	"go.opentelemetry.io/otel":       true,
-	"go.opentelemetry.io/otel/log":   true,
-	"go.opentelemetry.io/otel/trace": true,
+	"go.opentelemetry.io/otel":        true,
+	"go.opentelemetry.io/otel/log":    true,
+	"go.opentelemetry.io/otel/metric": true,
+	"go.opentelemetry.io/otel/trace":  true,
 	// Pulled in by the API modules above rather than chosen here.
 	"github.com/cespare/xxhash/v2": true,
 }

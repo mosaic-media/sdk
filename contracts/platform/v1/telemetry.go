@@ -23,8 +23,14 @@ import (
 // Platform implements rather than a re-export of whatever the Platform happens
 // to use internally.
 //
-// Nothing here adds a dependency. The SDK has none, deliberately: a third
-// party compiles against the contract and against nothing the Platform chose.
+// **This file names no OpenTelemetry type, and a test enforces that.** The
+// implementation underneath is OTel (ADR 0128) and lives next door in
+// `telemetry_otel.go`; what a module compiles against is this, so the thing
+// behind it can be replaced without breaking a published contract. The SDK's
+// zero-dependency rule ended with that record and was replaced by a narrower
+// one — the OTel *API* modules and nothing else — but the property it protected
+// did not change: a third party compiles against a contract rather than against
+// the Platform's taste.
 
 // RedactionClass says how a field's value may be recorded. It is the same
 // fail-closed vocabulary the Platform uses on its own records, and it crosses
@@ -146,6 +152,33 @@ func dropValue(value any) any {
 	return redacted
 }
 
+// Unit is the measurement unit of a Measure instrument.
+//
+// **It is a closed vocabulary, and that is deliberate** (ADR 0015's test: the
+// Platform branches on it). A unit is what lets a reader label an axis and a
+// backend convert between scales, so a free-form string here would produce
+// `ms`, `millis`, `milliseconds` and `Ms` across four modules describing the
+// same quantity — and nothing would ever reconcile them. The values are
+// OpenTelemetry's own unit annotations, so an exported instrument is already
+// correct for anything that reads UCUM.
+//
+// A unit outside this set is recorded as unitless rather than refused: the
+// measurement is still worth having, and dropping data over an annotation would
+// be the wrong trade.
+type Unit string
+
+const (
+	// UnitSeconds measures elapsed time. Prefer a Span when what you want is
+	// *this* operation's duration in *this* trace — a Measure is for the
+	// distribution across all of them.
+	UnitSeconds Unit = "s"
+	// UnitBytes measures a size: a payload, a file, a response body.
+	UnitBytes Unit = "By"
+	// UnitItems measures a count-valued distribution — results per query,
+	// candidates per title. Distinct from Count, which accumulates.
+	UnitItems Unit = "{item}"
+)
+
 // Telemetry is what a module records through. Obtain it with TelemetryFrom on
 // the context the Platform handed you:
 //
@@ -167,6 +200,16 @@ func dropValue(value any) any {
 // A module that never touches this is still traced: the Platform spans the
 // invocation, the context already carries the trace, and the HTTP client the
 // Platform hands you propagates it. Using this adds detail, not correctness.
+//
+// **Metric attributes must be low-cardinality, and that is the one rule this
+// surface asks you to hold that logging does not.** Every distinct combination
+// of attribute values is a separate series that lives for as long as the
+// process does — unlike a log record, which ages out. An addon id or a status
+// code is a dimension; a title, a search term or a URL is not, whatever its
+// redaction class, because a digest has exactly as many distinct values as the
+// thing it digests. The Platform caps the number of series a module may create
+// and records that it did, so the failure is bounded and visible rather than an
+// exhausted host — but the cap is a backstop, not a design.
 type Telemetry interface {
 	// Debug records detail useful while diagnosing. Off unless an operator
 	// turns the level down, so it is the right place for volume.
@@ -184,6 +227,22 @@ type Telemetry interface {
 	// inside — including an outbound HTTP call — appears beneath it rather
 	// than beside it.
 	Span(ctx context.Context, name string, attrs ...Field) (context.Context, Span)
+
+	// Count adds delta to a monotonic counter — requests made, results
+	// returned, upstream shapes worked around. Use a stable name; the
+	// Platform creates the instrument the first time it sees one.
+	//
+	// A counter answers "how often, across everything" — which no span can,
+	// because a span describes one occurrence and is sampled and aged out.
+	Count(name string, delta int64, attrs ...Field)
+
+	// Measure records one observation into a distribution, so percentiles
+	// survive where an average would hide them.
+	//
+	// Reach for Span first if the question is "where did the time go in this
+	// request". Reach for Measure when the question is about the population:
+	// the spread of upstream response sizes, the tail of a fan-out.
+	Measure(name string, value float64, unit Unit, attrs ...Field)
 }
 
 // Span is one measured unit of work inside a module.
@@ -246,6 +305,9 @@ func (noopTelemetry) Error(string, ...Field) {}
 func (noopTelemetry) Span(ctx context.Context, _ string, _ ...Field) (context.Context, Span) {
 	return ctx, noopSpan{}
 }
+
+func (noopTelemetry) Count(string, int64, ...Field)           {}
+func (noopTelemetry) Measure(string, float64, Unit, ...Field) {}
 
 type noopSpan struct{}
 

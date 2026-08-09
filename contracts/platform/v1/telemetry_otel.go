@@ -3,11 +3,13 @@ package v1
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/log"
+	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -139,6 +141,14 @@ type TelemetryOptions struct {
 	// Tracer starts the spans. Nil yields spans that record nothing and still
 	// return a usable context, so a module's own nesting is unaffected.
 	Tracer trace.Tracer
+	// Meter creates the counters and histograms. Nil discards them.
+	//
+	// It is a `metric.Meter` — an interface the caller supplies — and never a
+	// `MeterProvider`, for the same reason Logger is not a LoggerProvider: a
+	// provider is where views, readers and exporters are configured, and that
+	// is the Platform's (ADR 0059). A module receives the one thing it needs to
+	// record and nothing it could use to decide where the recording goes.
+	Meter metric.Meter
 	// Digest resolves Identifier fields. See Encoder.Digest — nil drops them.
 	Digest func(value string) string
 	// Now is the clock, injectable so a test can pin a record's timestamp.
@@ -172,6 +182,9 @@ type otelTelemetry struct {
 	ctx  context.Context
 	opts TelemetryOptions
 	enc  Encoder
+	// badInstrument bounds the "that name is not usable" diagnostic to one
+	// record per invocation. See reportInstrument.
+	badInstrument sync.Once
 }
 
 func (t *otelTelemetry) Debug(message string, fields ...Field) {
@@ -264,3 +277,78 @@ func (s *otelSpan) Fail(err error) {
 }
 
 func (s *otelSpan) End() { s.span.End() }
+
+// The metric half (ADR 0130).
+//
+// **The instrument is created on every call, and that is not the oversight it
+// looks like.** An OpenTelemetry meter caches by the instrument's identifying
+// fields — name, kind, unit, description — and returns the same instrument for
+// a repeat request, so this is a map lookup rather than an allocation. The
+// alternative is a per-module instrument cache, which buys a lock-free lookup
+// and costs the thing that makes this surface usable: a module would have to
+// hold instruments as state, construct them somewhere, and thread them to every
+// call site. The whole point of an ambient handle is that there is nothing to
+// hold.
+
+// Count adds delta to a counter.
+func (t *otelTelemetry) Count(name string, delta int64, attrs ...Field) {
+	if t.opts.Meter == nil {
+		return
+	}
+	counter, err := t.opts.Meter.Int64Counter(name)
+	if err != nil {
+		t.reportInstrument(name, err)
+		return
+	}
+	counter.Add(t.ctx, delta, metric.WithAttributes(t.enc.Attributes(attrs)...))
+}
+
+// Measure records one observation into a distribution.
+func (t *otelTelemetry) Measure(name string, value float64, unit Unit, attrs ...Field) {
+	if t.opts.Meter == nil {
+		return
+	}
+	hist, err := t.opts.Meter.Float64Histogram(name, metric.WithUnit(unitAnnotation(unit)))
+	if err != nil {
+		t.reportInstrument(name, err)
+		return
+	}
+	hist.Record(t.ctx, value, metric.WithAttributes(t.enc.Attributes(attrs)...))
+}
+
+// unitAnnotation renders a Unit for OpenTelemetry, normalising anything outside
+// the closed set to unitless.
+//
+// A caller can always write `Unit("furlongs")`, since the type is a string. The
+// measurement is kept and the annotation is dropped, because losing the data
+// over a label would be the wrong way round — and an instrument carrying a unit
+// nothing recognises is worse than one carrying none, since a backend will
+// convert against it.
+func unitAnnotation(u Unit) string {
+	switch u {
+	case UnitSeconds, UnitBytes, UnitItems:
+		return string(u)
+	default:
+		return ""
+	}
+}
+
+// reportInstrument says once, per invocation, that an instrument could not be
+// created.
+//
+// **A metric that silently discards is the specific failure ADR 0059 refused to
+// ship**, and the only way to create an instrument wrongly is to name it
+// wrongly — a name OpenTelemetry rejects, which no test against a no-op meter
+// would ever reveal. So it is reported through the channel the module is
+// already reading.
+//
+// Once per invocation rather than once per call: a bad name in a loop would
+// otherwise turn a diagnostic into the flood the Platform's quota exists to
+// prevent, and one record naming the instrument is the whole of what a module
+// author needs.
+func (t *otelTelemetry) reportInstrument(name string, err error) {
+	t.badInstrument.Do(func() {
+		t.emit(log.SeverityWarn, "module metric instrument refused; the measurement was dropped",
+			[]Field{String("instrument", name), Err(err)})
+	})
+}

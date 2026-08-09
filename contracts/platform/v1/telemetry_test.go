@@ -90,6 +90,9 @@ func (r *recordingTelemetry) Span(ctx context.Context, _ string, _ ...v1.Field) 
 	return ctx, noopSpanForTest{}
 }
 
+func (r *recordingTelemetry) Count(string, int64, ...v1.Field)              {}
+func (r *recordingTelemetry) Measure(string, float64, v1.Unit, ...v1.Field) {}
+
 type noopSpanForTest struct{}
 
 func (noopSpanForTest) SetAttributes(...v1.Field) {}
