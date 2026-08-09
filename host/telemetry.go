@@ -161,6 +161,68 @@ func (s *remoteSpan) End() {
 	})
 }
 
+// Count and Measure are fire-and-forget like the log calls, and for the same
+// reason: telemetry must never fail the operation it observes.
+//
+// **Neither is a no-op, and that is the point of them existing at all.** ADR
+// 0059 declined to publish a counter the Platform could not back, because a
+// module author instrumenting against a silent discard gets no data and no
+// indication why. A bridge that accepted these calls and dropped them would
+// rebuild that failure for exactly the modules that run out of process — the
+// configuration nobody exercises locally.
+func (t *telemetryClient) Count(name string, delta int64, attrs ...v1.Field) {
+	//nolint:errcheck // deliberate: see the type comment.
+	_, _ = t.client.Count(context.Background(), &modulev1.CountRequest{
+		Name:       name,
+		Delta:      delta,
+		Attributes: fieldsToWire(attrs),
+	})
+}
+
+func (t *telemetryClient) Measure(name string, value float64, unit v1.Unit, attrs ...v1.Field) {
+	//nolint:errcheck // deliberate.
+	_, _ = t.client.Measure(context.Background(), &modulev1.MeasureRequest{
+		Name:       name,
+		Value:      value,
+		Unit:       unitToWire(unit),
+		Attributes: fieldsToWire(attrs),
+	})
+}
+
+// unitToWire and unitFromWire are the closed vocabulary crossing the boundary.
+//
+// Both directions fall through to unspecified/unitless rather than carrying an
+// unrecognised value, which is what makes the set closed in the sense that
+// matters: a module built against a newer SDK than the Platform it is installed
+// into cannot name a unit this build would pass along without understanding.
+// The measurement still arrives — losing it over its annotation would be the
+// wrong trade — but the annotation is one this side can vouch for.
+func unitToWire(u v1.Unit) modulev1.MetricUnit {
+	switch u {
+	case v1.UnitSeconds:
+		return modulev1.MetricUnit_METRIC_UNIT_SECONDS
+	case v1.UnitBytes:
+		return modulev1.MetricUnit_METRIC_UNIT_BYTES
+	case v1.UnitItems:
+		return modulev1.MetricUnit_METRIC_UNIT_ITEMS
+	default:
+		return modulev1.MetricUnit_METRIC_UNIT_UNSPECIFIED
+	}
+}
+
+func unitFromWire(u modulev1.MetricUnit) v1.Unit {
+	switch u {
+	case modulev1.MetricUnit_METRIC_UNIT_SECONDS:
+		return v1.UnitSeconds
+	case modulev1.MetricUnit_METRIC_UNIT_BYTES:
+		return v1.UnitBytes
+	case modulev1.MetricUnit_METRIC_UNIT_ITEMS:
+		return v1.UnitItems
+	default:
+		return ""
+	}
+}
+
 type noopSpan struct{}
 
 func (noopSpan) SetAttributes(...v1.Field) {}
@@ -241,6 +303,21 @@ func (s *telemetryServer) FailSpan(_ context.Context, req *modulev1.FailSpanRequ
 		sp.Fail(&wireError{category: req.GetCategory(), message: req.GetMessage()})
 	}
 	return &modulev1.FailSpanResponse{}, nil
+}
+
+func (s *telemetryServer) Count(_ context.Context, req *modulev1.CountRequest) (*modulev1.CountResponse, error) {
+	if s.impl != nil {
+		s.impl.Count(req.GetName(), req.GetDelta(), fieldsFromWire(req.GetAttributes())...)
+	}
+	return &modulev1.CountResponse{}, nil
+}
+
+func (s *telemetryServer) Measure(_ context.Context, req *modulev1.MeasureRequest) (*modulev1.MeasureResponse, error) {
+	if s.impl != nil {
+		s.impl.Measure(req.GetName(), req.GetValue(), unitFromWire(req.GetUnit()),
+			fieldsFromWire(req.GetAttributes())...)
+	}
+	return &modulev1.MeasureResponse{}, nil
 }
 
 func (s *telemetryServer) EndSpan(_ context.Context, req *modulev1.EndSpanRequest) (*modulev1.EndSpanResponse, error) {
