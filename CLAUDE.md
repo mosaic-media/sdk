@@ -32,12 +32,25 @@ generated files here and no build step — `go build ./...` is the whole thing.
 
 ## Non-negotiable rules
 
-- **No dependencies.** `go.mod` is a module line and a Go version, and that is
-  load-bearing: a third party compiles against this contract and against
-  nothing the Platform happened to choose. Adding a dependency here forces it
-  on every module author and pins them to a version the Platform picked.
-  This is why the telemetry surface (ADR 0059) declares its own interface
-  rather than re-exporting OpenTelemetry.
+- **The OpenTelemetry API modules, and nothing else.** `go.mod` may require
+  `go.opentelemetry.io/otel`, `.../otel/log` and `.../otel/trace` — three
+  modules — and no fourth. **Not** `.../otel/sdk` or anything under it, not an
+  exporter, not a collector client: those are what a *binary* wires, and a
+  module able to reach them could configure the Platform's observability plane
+  from inside it (ADR 0059's ownership rule, which ADR 0128 did not move).
+
+  The rule was "no dependencies at all" until ADR 0128, and it is worth knowing
+  why it changed rather than finding the old sentence in a git log. The property
+  being protected was never zero for its own sake — it was that a third party
+  compiles against a contract rather than against the Platform's taste. Mosaic
+  had hand-written the same telemetry three times by then, the third with a
+  duplicated record format whose only guard was a test naming its JSON keys, and
+  a vendor-neutral CNCF API that the third party probably already has is a
+  different thing from a Mosaic-flavoured one.
+
+  `sdk/host/nodeps_test.go` is the allowlist in executable form. It lives in the
+  nested module because that is the one that would notice and the one whose own
+  dependency list is the temptation.
 - **Nothing here imports the Platform.** The dependency points one way. If a
   capability needs a private Platform import, the contracts are not ready to
   publish — that is the stop point, and it governs any change here.

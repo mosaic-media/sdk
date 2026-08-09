@@ -59,6 +59,39 @@ Extracted from `platform` into a standalone module and published. The Platform
 and modules build against it as an ordinary tagged dependency, with no
 `replace`.
 
+**`v0.28.0` — OpenTelemetry behind the telemetry surface**
+([ADR 0128](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0128-opentelemetry-is-the-telemetry-implementation.md)).
+**The surface you write against did not change.** `v1.TelemetryFrom(ctx)`,
+`v1.Telemetry`, `v1.Span` and the classified `v1.Field` constructors keep their
+shapes and their semantics, so a module needs no change beyond this bump. What
+changed is what carries the record: an OpenTelemetry `log.Record` and an
+OpenTelemetry span, so everything Mosaic emits is readable by any collector,
+backend or dashboard that speaks OTLP.
+
+**This is the SDK's first dependency**, and the rule that said "none" is now
+"the OpenTelemetry API modules and nothing else" — `go.opentelemetry.io/otel`,
+`.../otel/log` and `.../otel/trace`, three modules, enforced by a test in
+`sdk/host`. Not the OTel SDK, not an exporter, not a collector client: those are
+what a *binary* wires, and a module that could reach them could configure the
+Platform's observability plane from inside it.
+
+`v1.NewTelemetry` and `v1.Encoder` are new and are for a *host* to call — the
+Platform at its invocation seam, or the out-of-process extension host. A module
+never builds a Telemetry; it receives one. `Encoder` is where classification
+becomes an OTel attribute, and it is exported so the two hosts apply one rule
+rather than two copies of it.
+
+**One asymmetry to know about.** `Identifier` is the only class that carries its
+value across the boundary, because only the Platform holds the install salt — so
+an `Encoder` with no `Digest` **drops** those fields rather than emitting them
+raw. An unconfigured encoder is a safe one.
+
+Note that `go.opentelemetry.io/otel/log` is `v0.21.0` and says in its own
+package documentation that its interfaces may gain methods without a major
+bump. The tracing half is `v1.45.0` and carries that project's compatibility
+guarantee. This SDK wraps rather than re-exports, so most of what could change
+there is absorbed here.
+
 **`v0.27.0` — the two fields that let a consumer avoid transcoding.**
 `StreamLink` gains `Width`, `Height` and `HDRFormat`, named and typed as
 `Part`'s so a consumer moves them across rather than translating.
