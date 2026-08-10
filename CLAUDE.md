@@ -13,7 +13,7 @@ to get wrong:
 | Repository | Form | Source of truth |
 |---|---|---|
 | **`sdk`** (this one) | **hand-written Go** | the `.go` files in `contracts/platform/v1/` |
-| **`sdui`** | **protobuf**, Go and TS generated | `proto/**/*.proto`, generated into `gen/` |
+| **`contracts`** | **protobuf**, Go and TS generated | `proto/**/*.proto`, generated into `gen/` |
 
 [ADR 0044](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0044-contracts-protobuf-workspace.md)
 made the **SDUI and session** contracts protobuf. Its title names that scope,
@@ -23,7 +23,7 @@ The reason is not historical accident. **This SDK's job is Go interfaces with
 behaviour** — `Capability`, `ContentService`, the provider roles, `Telemetry` —
 which a module *implements* in its own process. Protobuf describes messages and
 RPC services; it cannot express an interface a third party satisfies in-process.
-`sdui` is the opposite case: a wire format, consumed by four client languages,
+`contracts` is the opposite case: a wire format, consumed by four client languages,
 where codegen is exactly right.
 
 So: add a `.go` file beside `capability.go` and `provider.go`. Do not add a
@@ -32,25 +32,61 @@ generated files here and no build step — `go build ./...` is the whole thing.
 
 ## Non-negotiable rules
 
-- **The OpenTelemetry API modules, and nothing else.** `go.mod` may require
-  `go.opentelemetry.io/otel`, `.../otel/log` and `.../otel/trace` — three
-  modules — and no fourth. **Not** `.../otel/sdk` or anything under it, not an
-  exporter, not a collector client: those are what a *binary* wires, and a
-  module able to reach them could configure the Platform's observability plane
-  from inside it (ADR 0059's ownership rule, which ADR 0128 did not move).
+- **This SDK names no implementation and depends on nothing.** `go.mod` is a
+  module line and a Go version — no require block at all
+  ([ADR 0135](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0135-the-sdk-carries-no-implementation.md)).
+  The principle behind it governs every change here: **the SDK says how a module
+  interacts with the Platform; the Platform holds the implementations.** The
+  surface may be **wide** — a module nobody has imagined must be expressible, and
+  a missing verb is found only by someone trying to build the thing it blocks —
+  but never **deep**. Those are not in tension: a contract can declare a great
+  many interfaces and still name no library, which is exactly what the content
+  surface already does.
 
-  The rule was "no dependencies at all" until ADR 0128, and it is worth knowing
-  why it changed rather than finding the old sentence in a git log. The property
-  being protected was never zero for its own sake — it was that a third party
-  compiles against a contract rather than against the Platform's taste. Mosaic
-  had hand-written the same telemetry three times by then, the third with a
-  duplicated record format whose only guard was a test naming its JSON keys, and
-  a vendor-neutral CNCF API that the third party probably already has is a
-  different thing from a Mosaic-flavoured one.
+  The rule was "nothing" until ADR 0128 widened it to four OpenTelemetry API
+  modules, and ADR 0135 narrowed it back. Worth knowing why, rather than finding
+  one of the two old sentences in a git log: **the line was in the wrong place,
+  and the library was never the objection.** The module-facing half was always
+  clean — `telemetry.go` declares `Telemetry`, `Span`, `Field` and
+  `TelemetryFrom` and names no OpenTelemetry type, with a seam test failing the
+  build if it ever does. The *host*-facing half — `NewTelemetry`,
+  `TelemetryOptions`, `Encoder` — sat in the same published package, and it is
+  what put four modules into the build of every module that compiles against this
+  one, for something no module calls. Its two callers are the Platform and the
+  extension harness, and neither is a module.
 
-  `sdk/host/nodeps_test.go` is the allowlist in executable form. It lives in the
-  nested module because that is the one that would notice and the one whose own
-  dependency list is the temptation.
+  So the wiring belongs to the hosts, and **the classification rule stays here,
+  in pure Go** — resolving a `Field` to the value a sink may record is
+  `(any, bool)`, and only the last step, building an `attribute.KeyValue`, needs
+  OTel. A second copy of a fail-closed rule is how the guarantee quietly stops
+  being one.
+
+  **OpenTelemetry remains Mosaic's telemetry implementation in every process**
+  (ADR 0128). What reverses is who declares the dependency; a module still writes
+  `v1.TelemetryFrom(ctx).Info(…)` and still never sees OTel.
+
+  **The obvious relocation does not work, and ADR 0135 rejects it on the facts:**
+  moving the OTel half down into `sdk/host` looks free because no *contract*
+  consumer imports that module, but every out-of-process module requires
+  `sdk/host` in its own `go.mod` to serve itself — so the dependency lands in a
+  third party's build regardless. The nesting protects this module's graph, not
+  the module author's.
+
+  `sdk/host/nodeps_test.go` is the rule in executable form, and it asserts
+  **emptiness**: any require line in the parent `go.mod` fails it. It lives in
+  the nested module because that is the one that would notice, and the one whose
+  own dependency list is the temptation.
+
+  **As this is written the removal has not landed** — `go.mod` still requires the
+  four modules and the test still carries ADR 0128's allowlist. Say so rather
+  than reading the gap as a second opinion, and do not widen the allowlist while
+  it is open.
+- **A facility a module needs is reached declaratively, never as a primitive.**
+  The same rule settles the crypto question without a second argument: the
+  Platform's secret facility ([ADR 0134](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0134-the-install-key.md)
+  and its successor) is reached through a settings field marked secret and sealed
+  by the Platform — never through `Seal`/`Open` primitives here, which would
+  publish an implementation and hand a module an encryption oracle.
 - **Nothing here imports the Platform.** The dependency points one way. If a
   capability needs a private Platform import, the contracts are not ready to
   publish — that is the stop point, and it governs any change here.
