@@ -10,7 +10,7 @@ to hold. With [platform#39](https://github.com/mosaic-media/platform/blob/main/d
 [platform#51](https://github.com/mosaic-media/platform/blob/main/docs/adr/0051-extension-installation-is-user-initiated-and-persistent.md) this
 is what supersedes [platform#4](https://github.com/mosaic-media/platform/blob/main/docs/adr/0004-static-go-module-composition.md)'s rejection
 of module RPC **for the extension tier only**; core modules stay statically
-linked under [platform#3](https://github.com/mosaic-media/platform/blob/main/docs/adr/0003-platform-as-execution-kernel.md). Not done: the MPL-2.0
+linked under [architecture#3](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0003-two-module-tiers.md). Not done: the MPL-2.0
 compatibility check this record asks to be "done and recorded" is recorded
 nowhere, and both Open questions below are still open.
 **Date:** 2026-07-24
@@ -165,7 +165,7 @@ not make for it.
 - **MPL-2.0 enters the dependency graph.** It sits in `sdk/host` (Apache-2.0) and
   reaches the Platform (AGPL-3.0-only with a linking exception). MPL-2.0 is
   file-level copyleft and is normally compatible with both, but
-  [platform#1](https://github.com/mosaic-media/platform/blob/main/docs/adr/0001-transactional-store-extensibility.md) governs and **the check should be done and
+  [architecture#1](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0001-licensing.md) governs and **the check should be done and
   recorded rather than assumed.**
 - **[platform#39](https://github.com/mosaic-media/platform/blob/main/docs/adr/0039-extension-module-boundary.md)'s dual-source-of-truth cost is unchanged, not paid.** The Go
   interfaces and the `.proto` must still agree by codegen discipline and tests.

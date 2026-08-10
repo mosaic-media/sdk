@@ -166,7 +166,7 @@ art is proxied rather than stored anyway
   ([sdk#2](0002-modules-as-typed-capability-providers.md)) and this is the
   first extension of it since it was written.
 - **It is the first genuinely optional module.**
-  [platform#3](https://github.com/mosaic-media/platform/blob/main/docs/adr/0003-platform-as-execution-kernel.md)'s core tier is for coupling or guarantee,
+  [architecture#3](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0003-two-module-tiers.md)'s core tier is for coupling or guarantee,
   and an artwork provider has neither — nothing breaks without it, art simply
   stays as good as the metadata source made it. Even `module-remote-playback` is
   core under the guarantee clause. So this is the first candidate for the
@@ -190,7 +190,7 @@ rather than stopping at the first. The selection rule and candidate cap from
 is written.
 
 **`module-fanart-tv`**: a new repository per
-[platform#2](https://github.com/mosaic-media/platform/blob/main/docs/adr/0002-module-storage-and-delivery-model.md) — inbound, naming the foreign
+[architecture#2](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0002-repository-naming-convention.md) — inbound, naming the foreign
 system. SDK-only imports with the usual boundary test, a hermetic fake over
 `httptest`, and the bundled-credential pattern `module-tmdb` established
 (`-ldflags -X` with a `linkercheck` gate) since fanart.tv requires a project key.

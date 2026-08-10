@@ -256,7 +256,7 @@ type RelatedItem struct {
 }
 
 // Collection is the franchise a work belongs to — "The Matrix Collection", "the
-// other Avatar films" ([sdk#3](0034) recorded its absence as a gap Cinemeta
+// other Avatar films" ([sdk#3](0003-rich-metadata-preview.md) recorded its absence as a gap Cinemeta
 // could not fill and a TMDB-class source could).
 //
 // It is a *descriptive projection*, not the object graph's collection. The graph
@@ -468,7 +468,7 @@ type StreamLink struct {
 	// be moving values across, not translating them.
 	//
 	// A module already knows all three — it parses them at its own boundary
-	// ([module-stremio-addons#2](0051)) — and until now had nowhere to put them, so the parse
+	// ([module-stremio-addons#2](0002-modules-as-anti-corruption-layers.md)) — and until now had nowhere to put them, so the parse
 	// was narrowed to Quality, SizeBytes and Seeders on the way out and every
 	// candidate arrived saying less than its source had said. An empty field is
 	// not neutral here: the same fields left empty on a Part once had ten
@@ -477,7 +477,7 @@ type StreamLink struct {
 	// **Best-effort, and a guess rather than a measurement.** These come from
 	// release text, which lies, and no parse can see inside a file. What a
 	// release actually contains is settled by probing the bytes before it plays
-	// ([platform#29](0050)); what these do is make a candidate list *rankable*
+	// ([platform#29](0029-probing-and-the-per-stream-playback-decision.md)); what these do is make a candidate list *rankable*
 	// before anything has been fetched. A source that does not report one
 	// leaves it empty, like every other descriptive field here.
 	//
@@ -509,7 +509,7 @@ type StreamLink struct {
 	// **Best-effort and nominal, like everything else here.** "2160p" means
 	// 3840×2160 whatever the release's real aspect, and release text names HDR
 	// far less reliably than it names resolution. The bytes settle it at probe
-	// time ([platform#29](0050)); what these do is let a candidate list be ranked
+	// time ([platform#29](0029-probing-and-the-per-stream-playback-decision.md)); what these do is let a candidate list be ranked
 	// before anything is fetched.
 	//
 	// Spell HDRFormat as `Part` does — "HDR10", "HLG", "DolbyVision" — and leave
@@ -554,7 +554,7 @@ type SubtitlesRequest struct {
 	// what StreamRequest's do: both zero for a film, 1-based for a series as the
 	// source numbers them, season 0 being specials.
 	//
-	// They are here for StreamRequest's reason ([platform#46](0073)) rather than a
+	// They are here for StreamRequest's reason ([platform#46](0046-stream-resolution-is-decoupled-from-metadata-provenance.md)) rather than a
 	// new one. A subtitles provider is asked about content it did not source,
 	// so the Ref carries a *shared* external identity and no native id, and a
 	// provider whose episode addressing is derived composes it from these. The
@@ -808,7 +808,7 @@ type StreamRequest struct {
 	// season 0 being the specials a source may or may not have.
 	//
 	// They exist because a stream provider is now asked about content it did not
-	// source ([platform#46](0073)), and in that case the Ref carries a *shared*
+	// source ([platform#46](0046-stream-resolution-is-decoupled-from-metadata-provenance.md)), and in that case the Ref carries a *shared*
 	// external identity rather than the provider's own id. A provider whose
 	// episode addressing is derived — "the series' id, a colon, the season, a
 	// colon, the episode" is one real example — composes it from these, because
