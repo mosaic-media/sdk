@@ -1,202 +1,185 @@
 # Claude Instructions — Mosaic SDK
 
 This repository is the **published contract surface** between the Platform and
-the Modules that extend it ([sdk#1](docs/adr/0001-sdk-as-public-contract-language.md), [platform#12](https://github.com/mosaic-media/platform/blob/main/docs/adr/0012-published-contract-surface.md)). It is `github.com/mosaic-media/sdk`,
-consumed as an ordinary tagged dependency with no `replace`.
+the Modules that extend it ([sdk#1](docs/adr/0001-sdk-as-public-contract-language.md)).
+It is `github.com/mosaic-media/sdk`, consumed as an ordinary dependency with no
+`replace`.
+
+`README.md` describes the surface and carries the per-version changelog. This
+file is how to *work* here — the rules, and the reasons they exist.
+
+Two Go modules live in this repository, and the distinction is load-bearing:
+
+| Module | Path | What it is |
+|---|---|---|
+| the contract | `github.com/mosaic-media/sdk` | `contracts/platform/v1/` — what a module compiles against |
+| the harness | `github.com/mosaic-media/sdk/host` | `host/` — what an out-of-process module links to serve itself |
+
+`host` is **nested so the contract's dependency graph does not have to carry
+it**. It requires go-plugin, gRPC and the SDUI contract; the parent must not.
+That is the whole reason for the nesting, and `host/nodeps_test.go` is the
+assertion that keeps it honest — see below.
 
 ## This is hand-written Go. It is not generated, and it is not protobuf.
 
 **Read this before adding a file.** Mosaic has two published contract
-repositories and they are built in opposite ways, which is a reasonable thing
-to get wrong:
-
-| Repository | Form | Source of truth |
-|---|---|---|
-| **`sdk`** (this one) | **hand-written Go** | the `.go` files in `contracts/platform/v1/` |
-| **`contracts`** | **protobuf**, Go and TS generated | `proto/**/*.proto`, generated into `gen/` |
-
-[contracts#6](https://github.com/mosaic-media/contracts/blob/main/docs/adr/0006-contracts-protobuf-workspace.md)
-made the **SDUI and session** contracts protobuf. Its title names that scope,
-and it does not extend here.
+repositories and they are built in opposite ways, which is a reasonable thing to
+get wrong. This one is hand-written Go;
+[`contracts`](https://github.com/mosaic-media/contracts) is generated, and its
+own `CLAUDE.md` says from what.
 
 The reason is not historical accident. **This SDK's job is Go interfaces with
 behaviour** — `Capability`, `ContentService`, the provider roles, `Telemetry` —
 which a module *implements* in its own process. Protobuf describes messages and
 RPC services; it cannot express an interface a third party satisfies in-process.
-`contracts` is the opposite case: a wire format, consumed by four client languages,
-where codegen is exactly right.
+A wire format consumed by several client languages is the opposite case, and
+that is why it lives in the other repository rather than here.
+[contracts#6](https://github.com/mosaic-media/contracts/blob/main/docs/adr/0006-contracts-protobuf-workspace.md)
+made the SDUI and session contracts protobuf; its title names that scope, and it
+does not extend here.
 
 So: add a `.go` file beside `capability.go` and `provider.go`. Do not add a
 `.proto`, do not add a `buf.yaml`, and do not generate anything. There are no
-generated files here and no build step — `go build ./...` is the whole thing.
+generated files here and no build step.
 
 ## Non-negotiable rules
 
-- **This SDK names no implementation and depends on nothing.** `go.mod` is a
-  module line and a Go version — no require block at all
-  ([sdk#10](docs/adr/0010-the-sdk-carries-no-implementation.md)).
-  The principle behind it governs every change here: **the SDK says how a module
-  interacts with the Platform; the Platform holds the implementations.** The
-  surface may be **wide** — a module nobody has imagined must be expressible, and
-  a missing verb is found only by someone trying to build the thing it blocks —
-  but never **deep**. Those are not in tension: a contract can declare a great
-  many interfaces and still name no library, which is exactly what the content
-  surface already does.
+- **This SDK names no implementation.** The principle governs every change here:
+  **the SDK says how a module interacts with the Platform; the Platform holds the
+  implementations.** The surface may be **wide** — a module nobody has imagined
+  must be expressible, and a missing verb is found only by someone trying to
+  build the thing it blocks — but never **deep**. Those are not in tension: a
+  contract can declare a great many interfaces and still name no library, which
+  is what the content surface already does.
 
-  The rule was "nothing" until [sdk#8](docs/adr/0008-opentelemetry-is-the-telemetry-implementation.md) widened it to four OpenTelemetry API
-  modules, and [sdk#10](docs/adr/0010-the-sdk-carries-no-implementation.md) narrowed it back. Worth knowing why, rather than finding
-  one of the two old sentences in a git log: **the line was in the wrong place,
-  and the library was never the objection.** The module-facing half was always
-  clean — `telemetry.go` declares `Telemetry`, `Span`, `Field` and
-  `TelemetryFrom` and names no OpenTelemetry type, with a seam test failing the
-  build if it ever does. The *host*-facing half — `NewTelemetry`,
-  `TelemetryOptions`, `Encoder` — sat in the same published package, and it is
-  what put four modules into the build of every module that compiles against this
-  one, for something no module calls. Its two callers are the Platform and the
-  extension harness, and neither is a module.
+- **The dependency rule is an allowlist, and its current state is not what
+  [sdk#10](docs/adr/0010-the-sdk-carries-no-implementation.md) wants.** Read both
+  the record and `go.mod` before writing anything about it, because they
+  disagree on purpose and the record's `**Status:**` line says so.
 
-  So the wiring belongs to the hosts, and **the classification rule stays here,
-  in pure Go** — resolving a `Field` to the value a sink may record is
-  `(any, bool)`, and only the last step, building an `attribute.KeyValue`, needs
-  OTel. A second copy of a fail-closed rule is how the guarantee quietly stops
-  being one.
+  As this is written, `go.mod` **requires four OpenTelemetry API modules** —
+  `go.opentelemetry.io/otel`, `.../log`, `.../metric`, `.../trace` — plus
+  `github.com/cespare/xxhash/v2` as an indirect they pull in.
+  `host/nodeps_test.go` enforces exactly that five-entry allowlist and fails on
+  anything else. It is **not** an emptiness assertion, and describing it as one
+  has already put a false sentence in this file.
 
-  **OpenTelemetry remains Mosaic's telemetry implementation in every process**
-  ([sdk#8](docs/adr/0008-opentelemetry-is-the-telemetry-implementation.md)). What reverses is who declares the dependency; a module still writes
-  `v1.TelemetryFrom(ctx).Info(…)` and still never sees OTel.
+  [sdk#10](docs/adr/0010-the-sdk-carries-no-implementation.md) decides to remove
+  them and is **unbuilt**. Until it lands: **do not widen the allowlist**, and do
+  not write "no require block at all" as though the removal had happened. The
+  live rule is the allowlist; the intended one is in the record.
 
-  **The obvious relocation does not work, and [sdk#10](docs/adr/0010-the-sdk-carries-no-implementation.md) rejects it on the facts:**
-  moving the OTel half down into `sdk/host` looks free because no *contract*
-  consumer imports that module, but every out-of-process module requires
-  `sdk/host` in its own `go.mod` to serve itself — so the dependency lands in a
-  third party's build regardless. The nesting protects this module's graph, not
-  the module author's.
+  What is *not* on the list and cannot be added without a decision:
+  `go.opentelemetry.io/otel/sdk` and anything under it, any exporter, any
+  collector client. Those are what a *binary* wires, and a module that could
+  reach them could configure the observability plane from inside it.
 
-  `sdk/host/nodeps_test.go` is the rule in executable form, and it asserts
-  **emptiness**: any require line in the parent `go.mod` fails it. It lives in
-  the nested module because that is the one that would notice, and the one whose
-  own dependency list is the temptation.
+- **The module-facing surface must stay free of OpenTelemetry types, and this is
+  checked.** `telemetry.go` is the module-facing half (`Telemetry`, `Span`,
+  `Field`, `TelemetryFrom`); `telemetry_otel.go` is the host-facing half
+  (`NewTelemetry`, `TelemetryOptions`, `Encoder`). The split is physical rather
+  than a convention, and `telemetry_seam_test.go` parses `telemetry.go`'s imports
+  and fails the build if an OTel path appears there. "Abstract it so the
+  implementation can change" is a claim; that test is what makes it checkable.
 
-  **As this is written the removal has not landed** — `go.mod` still requires the
-  four modules and the test still carries [sdk#8](docs/adr/0008-opentelemetry-is-the-telemetry-implementation.md)'s allowlist. Say so rather
-  than reading the gap as a second opinion, and do not widen the allowlist while
-  it is open.
+  **The classification rule stays here, in pure Go.** Resolving a `Field` to the
+  value a sink may record is `(any, bool)`; only the last step, building an
+  `attribute.KeyValue`, needs OTel. A second copy of a fail-closed rule is how
+  the guarantee quietly stops being one.
+
 - **A facility a module needs is reached declaratively, never as a primitive.**
-  The same rule settles the crypto question without a second argument: the
-  Platform's secret facility ([platform#81](https://github.com/mosaic-media/platform/blob/main/docs/adr/0081-the-install-key.md)
-  and its successor) is reached through a settings field marked secret and sealed
-  by the Platform — never through `Seal`/`Open` primitives here, which would
-  publish an implementation and hand a module an encryption oracle.
+  This settles the crypto question without a second argument: the Platform's
+  secret facility is reached through a settings field marked secret and sealed by
+  the Platform — never through `Seal`/`Open` primitives here, which would publish
+  an implementation and hand a module an encryption oracle.
+
 - **Nothing here imports the Platform.** The dependency points one way. If a
   capability needs a private Platform import, the contracts are not ready to
   publish — that is the stop point, and it governs any change here.
+
 - **No storage contracts, no transaction type, no identity or configuration
-  models.** A capability calls application services, never stores ([platform#8](https://github.com/mosaic-media/platform/blob/main/docs/adr/0008-capabilities-do-not-own-stores.md)).
+  models.** A capability calls application services, never stores
+  ([platform#8](https://github.com/mosaic-media/platform/blob/main/docs/adr/0008-capabilities-do-not-own-stores.md)).
+
 - **Apache-2.0**, unlike the Platform's AGPL. This is the permissive surface a
-  third party compiles against. Files here carry no SPDX header — match the
+  third party compiles against. Files here carry **no SPDX header** — match the
   files already present rather than importing the Platform's convention.
+
+## Decision records
+
+[`docs/adr/README.md`](docs/adr/README.md) is the generated index of the records
+this repository owns, with each one's status. **Read the index rather than
+counting files, and do not restate a status here** — it is generated from the
+records and this file is not.
+
+The index is produced by `adr_index.py`, which
+[`architecture`](https://github.com/mosaic-media/architecture) owns for the
+fleet. **Neither that script nor the citation lint is vendored here yet**, so
+nothing in this repository's gate checks the index is current or that a citation
+resolves. Until they are, both are on you: regenerate the index when you add a
+record, and write every citation as a `repo#N` link.
 
 ## Versioning and release
 
-Pre-1.0 on purpose. A change is a **minor** bump (`v0.13.0` → `v0.14.0`), tagged
-and pushed, and the Platform's `require` is bumped to match:
+Pre-1.0 on purpose. A change is a **minor** bump, and `README.md`'s **Status**
+section is updated in the same change — it is the per-version changelog and the
+only way anyone finds out what a version contains. Read it for where the
+numbering has got to rather than trusting an example written here.
 
-```bash
-git tag v0.14.0 && git push origin main && git push origin v0.14.0
-```
+**Tag pushes are currently refused from this environment**, and this repository
+has no tags at all as a result. Do not present tagging as a step you have
+completed, and do not tell anyone a version is published when only its commit is
+on `main`.
 
-For local cross-repo work, add `replace github.com/mosaic-media/sdk => ../sdk`
-to the Platform's `go.mod` temporarily — then tag, push, bump, and remove the
-`replace` before committing. A `replace` must never land in a commit.
+What works instead: a Go consumer moves onto an untagged commit as an ordinary
+pseudo-version `require` resolved from the proxy. That keeps the standing rule
+intact — **a `replace` must never land in a commit** — and it is how every
+consumer is presently pinned. For local cross-repo work add a `replace` to the
+*consumer's* `go.mod` temporarily, then move it to a pseudo-version and remove
+the `replace` before committing.
 
-Update the **Status** section of `README.md` in the same change: it is the
-per-version changelog, and it is how anyone finds out what a tag contains.
+Note that `host` requires the parent SDK by version like any other consumer, so
+a change spanning both is two steps, not one.
 
 ## Everything runs in the container, nothing runs on the host
 
 **Do not run `go build`, `go test`, `go vet` or `gofmt` directly on this
-machine.** This repository's gates run inside its test container:
+machine.** This repository's gate runs inside its test container:
 
 ```bash
 docker compose -f docker-compose.test.yml run --rm test
 ```
 
-That runs gofmt, `go build ./...`, `go vet ./...` and `go test ./...` against
-the Go version pinned in the compose file, which must stay equal to the one in
-`go.mod`. Append `bash` for a shell in the same environment.
+That runs gofmt over the tree, then `go build`, `go vet` and `go test` **twice —
+once for the contract and once for `host`**, against the Go version pinned in the
+compose file, which must stay equal to `go.mod`'s. Append `bash` for a shell in
+the same environment.
 
-The reason is weakest here of all the repositories and still worth keeping,
-because of what this module *is*. There is no hidden dependency to supply — no
-database, no ffmpeg, no generator — and `go build ./...` really is the whole
-thing. But **this is the surface a third party compiles against**, and the only
-claim worth making about it is that it builds under a pinned toolchain, not
+**The second pass is the point, not a formality.** `./...` does not descend into
+a nested module, so a gate that ran only in the root would report green while
+never compiling the harness — and `host` is where `nodeps_test.go` lives, so it
+would also never check the dependency rule the whole nesting exists to protect.
+
+This repository has **no CI workflows**, so the container is the only gate there
+is. Nothing will refuse a push on your behalf.
+
+The container's other argument is weaker here than elsewhere and still worth
+keeping: there is no hidden dependency to supply — no database, no generator —
+but **this is the surface a third party compiles against**, and the only claim
+worth making about it is that it builds under a pinned toolchain rather than
 under whatever a particular machine happens to have installed. A contract that
-compiles only where its author works is not a contract. Uniformity is also its
-own argument: a rule with an exception in one repository is a rule nobody
-applies reliably in the other six.
+compiles only where its author works is not a contract.
 
 ## Workflow
 
-- Commit and push this repository **separately** from `platform`. It is its own
-  git repository despite sitting beside the others on disk.
-- **Commit author identity** must be `AdamNi-7080 <anicholls41@gmail.com>`.
-- The test container green before pushing.
 - Every exported type and function carries a doc comment that says *why*, not
   only what. This is a published contract read by people who cannot read the
   Platform's source; the comments are the documentation.
+- A module that cannot express something is reporting a **finding**, not hitting
+  an obstacle to work around. Take it as an additive minor bump, or record it in
+  the roadmap as an open gap. What a finding may ask for is a shape — a type or a
+  verb. One that can only be closed by naming a library is a Platform change
+  reached through a declarative surface, not a bump here.
 
-## The roadmap and the decision records
-
-These rules are identical in every Mosaic repository. They exist because the
-state of the build and the reasons behind it are the two things that rot fastest
-and report nothing when they do — no build fails, no test goes red.
-
-### The roadmap is maintained, not consulted
-
-**`docs/roadmap.md` in [`architecture`](https://github.com/mosaic-media/architecture)
-is the single record of where the build is.** Read it before starting work, and
-**update it in the same session as the change that dates it** — not in a
-follow-up, which does not happen.
-
-- **A slice that lands is marked landed, with what was left out.** "Built" with
-  no qualifier is a claim that the whole slice shipped; if part of it did not,
-  say which part and why in the same sentence.
-- **Implementation that departs from the plan is recorded where it departed.**
-  The roadmap is derived from the code, not from the intention that preceded it,
-  and the surprises are the most valuable thing in it.
-- **Do not restate the roadmap here.** A second copy of "what is built" in a
-  `CLAUDE.md` is how the first copy goes stale unnoticed. This file carries how
-  to work in *this* repository; the roadmap carries what has been done across all
-  of them.
-- **A capability with no client path is not done — it is
-  [owed](https://github.com/mosaic-media/architecture/blob/main/docs/unreachable-capability.md).**
-  If you delete or fail to build a client path to a working service, add its row
-  to that register in the same change.
-
-### Decision records are append-only
-
-An ADR is an account of what was decided and why, at a time. It is evidence, not
-documentation, and its value is that it was not edited afterwards.
-
-- **Never rewrite a record's body to match what was built.** Not to correct it,
-  not to annotate it, not to add "as built, this differs". That pattern turns a
-  record into a running commentary and destroys the thing it is for.
-- **State changes in the `**Status:**` line, and nowhere else.** That is where a
-  record says it is built, built in part (naming the part), or superseded —
-  wholly ("Superseded by ADR N") or partly ("Partly superseded: X was reversed by
-  ADR N; the rest stands").
-- **A changed decision needs a new record that supersedes it.** If the code
-  deliberately does something a record decided against, that is a decision and it
-  is written down as one, with its own Context / Decision / Alternatives /
-  Consequences. Both records then stand: the old one keeps its reasoning, the new
-  one carries the change.
-- **An unbuilt decision is not a superseded one.** "We have not done this yet"
-  belongs in the Status line and the roadmap. Only a genuine reversal earns a new
-  record.
-- **Records live only in `architecture/docs/adr/`**, numbered sequentially in
-  kebab-case. Adding one means adding it to `nav:` in `mkdocs.yml`, and
-  `mkdocs build --strict` must pass.
-
-**If the code and a record disagree, say so rather than quietly picking one.** An
-honest "this is unresolved" is worth more than a plausible reconciliation that
-reads as settled.
+<!-- shared-rules:begin -->
+<!-- shared-rules:end -->
