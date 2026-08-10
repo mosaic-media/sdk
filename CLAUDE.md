@@ -15,7 +15,7 @@ to get wrong:
 | **`sdk`** (this one) | **hand-written Go** | the `.go` files in `contracts/platform/v1/` |
 | **`contracts`** | **protobuf**, Go and TS generated | `proto/**/*.proto`, generated into `gen/` |
 
-[ADR 0044](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0044-contracts-protobuf-workspace.md)
+[contracts#6](https://github.com/mosaic-media/contracts/blob/main/docs/adr/0006-contracts-protobuf-workspace.md)
 made the **SDUI and session** contracts protobuf. Its title names that scope,
 and it does not extend here.
 
