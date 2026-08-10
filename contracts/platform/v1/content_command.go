@@ -4,22 +4,22 @@ import "time"
 
 // The content write commands. Each is a Platform application service call a
 // capability makes to change the object graph; the Platform validates,
-// authenticates the Caller, authorises and commits (ADR 0016). A command
+// authenticates the Caller, authorises and commits (platform#12). A command
 // carries only what a caller legitimately chooses — the Platform derives ids,
 // timestamps and structural invariants.
 
 // AddContentWorkCommand creates the root of a containment tree — a film, a
-// series, an album, an artist, a collection (ADR 0013). A work roots its own
+// series, an album, an artist, a collection (platform#9). A work roots its own
 // tree, so its id and work id are the Platform's to set, not the caller's.
 type AddContentWorkCommand struct {
 	Caller    Caller
 	MediaType MediaType
 	Title     string
 	// ExternalIDs and Attributes are optional JSON documents. Empty means an
-	// empty object; the schema does not validate their contents (ADR 0013).
+	// empty object; the schema does not validate their contents (platform#9).
 	ExternalIDs []byte
 	Attributes  []byte
-	// Artwork is the node's stored image URLs (ADR 0071). A materialising
+	// Artwork is the node's stored image URLs (platform#45). A materialising
 	// capability fills it from the metadata it already fetched so a list surface
 	// need not re-derive art per card; empty is "the source had none".
 	Artwork Artwork
@@ -39,14 +39,14 @@ type AddContentWorkCommand struct {
 }
 
 // AddContentWorkResult carries the committed work, whose MediaType is the
-// canonical form (ADR 0015) and may differ from what was sent.
+// canonical form (platform#11) and may differ from what was sent.
 type AddContentWorkResult struct {
 	Work Node
 }
 
 // AddContentChildCommand adds a container or item beneath an existing node.
 // A child inherits its work id and media type from its parent, so neither is
-// the caller's to choose (ADR 0013).
+// the caller's to choose (platform#9).
 type AddContentChildCommand struct {
 	Caller   Caller
 	ParentID NodeID
@@ -58,11 +58,11 @@ type AddContentChildCommand struct {
 	ItemType      ItemType
 	Title         string
 	// NaturalOrder places the child among its siblings, a float so an
-	// insertion does not renumber the rest (ADR 0013).
+	// insertion does not renumber the rest (platform#9).
 	NaturalOrder float64
 	ExternalIDs  []byte
 	Attributes   []byte
-	// Artwork is the child's stored image URLs (ADR 0071) — for an episode, its
+	// Artwork is the child's stored image URLs (platform#45) — for an episode, its
 	// still. Empty is "the source had none".
 	Artwork Artwork
 }
@@ -73,7 +73,7 @@ type AddContentChildResult struct {
 }
 
 // AttachContentPartCommand attaches playable bytes to an item node. A Part
-// points at bytes and never contains them (ADR 0014), so the command carries
+// points at bytes and never contains them (platform#10), so the command carries
 // a location, not media.
 type AttachContentPartCommand struct {
 	Caller Caller
@@ -105,14 +105,14 @@ type AttachContentPartResult struct {
 //
 // It is the first command that *updates* a node rather than creating one, and
 // it exists because artwork was the first stored field with a reason to change
-// after materialisation. ADR 0071 recorded its absence as owed in as many
+// after materialisation. platform#45 recorded its absence as owed in as many
 // words: "there is no command that updates a stored work's fields, so a
 // re-import does not refresh its artwork today."
 //
-// Two things need it. The artwork enrichment pass (ADR 0075) resolves art for a
+// Two things need it. The artwork enrichment pass (sdk#6) resolves art for a
 // work the module already wrote, so it has a node and no way to put art on it.
-// And a user choosing a different poster (ADR 0074) is an update to a node by
-// definition — it is the feature ADR 0071 said storing artwork on the node was
+// And a user choosing a different poster (platform#47) is an update to a node by
+// definition — it is the feature platform#45 said storing artwork on the node was
 // the precondition for.
 //
 // # It replaces, it does not merge
@@ -122,7 +122,7 @@ type AttachContentPartResult struct {
 // two providers offer the same slot, and that decision belongs to whoever is
 // assembling the set — not to a command that cannot see why it was called.
 //
-// This is the same shape as configureModule's replace semantics (ADR 0021), and
+// This is the same shape as configureModule's replace semantics (platform#17), and
 // it carries the same obligation: a caller that writes a partial value erases
 // the rest. In particular, **a caller that re-resolves the flat slots will
 // overwrite a user's chosen artwork**, so the selection feature will need to
@@ -145,7 +145,7 @@ type SetContentArtworkResult struct {
 }
 
 // RelateContentCommand draws a typed, directed edge between two works
-// (ADR 0013) — an adaptation, a sequel, a collection membership.
+// (platform#9) — an adaptation, a sequel, a collection membership.
 type RelateContentCommand struct {
 	Caller     Caller
 	FromNodeID NodeID
@@ -163,7 +163,7 @@ type RelateContentResult struct {
 }
 
 // BindContentSourceCommand ties an external source to a node with an explicit
-// confidence (ADR 0013). Status is confirmed for a strong match or
+// confidence (platform#9). Status is confirmed for a strong match or
 // pending_review to queue a weak one; a binding is never created rejected.
 type BindContentSourceCommand struct {
 	Caller          Caller
@@ -191,7 +191,7 @@ const (
 	ResolveReject BindingResolution = "reject"
 )
 
-// ResolveContentBindingCommand acts on a binding under review (ADR 0013). A
+// ResolveContentBindingCommand acts on a binding under review (platform#9). A
 // merge is Confirm, a rejection is Reject, and a split is Confirm with
 // MoveToNodeID set — the binding moves and the source is never re-resolved.
 type ResolveContentBindingCommand struct {

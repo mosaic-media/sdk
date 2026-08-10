@@ -11,7 +11,7 @@ import (
 // — and every provider role — by calling the module process.
 //
 // The `CapabilityRegistry` holds it as a [v1.Capability] and cannot tell it from
-// a compiled-in module. That is the property ADR 0064 is arranged around, and it
+// a compiled-in module. That is the property platform#39 is arranged around, and it
 // is why no Platform code above the registry changes.
 //
 // **It implements every role interface unconditionally**, which matters because

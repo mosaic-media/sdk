@@ -1,6 +1,6 @@
 package v1
 
-// Content-model identifiers. They are UUIDv7 in the database (ADR 0013), but
+// Content-model identifiers. They are UUIDv7 in the database (platform#9), but
 // across this contract surface they are opaque strings a capability passes
 // back exactly as it received them — the generation strategy is the
 // Platform's, not the module's.

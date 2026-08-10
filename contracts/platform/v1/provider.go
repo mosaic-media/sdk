@@ -2,7 +2,7 @@ package v1
 
 import "context"
 
-// The provider surface (ADR 0027). A module is not only an importer: a source
+// The provider surface (sdk#2). A module is not only an importer: a source
 // exposes resources — metadata, search, catalogs, streams — and a module
 // contributes them as typed provider roles the Platform inherits on enable and,
 // by design, other modules resolve. Each role is a small interface a module
@@ -10,7 +10,7 @@ import "context"
 //
 // The read roles return the *virtual* content types below (SearchResult,
 // CatalogItem, ContentMetadata) — transient projections, never object-graph
-// nodes (ADR 0028). Only Import (see capability.go) writes nodes, and it does
+// nodes (platform#18). Only Import (see capability.go) writes nodes, and it does
 // so from a ContentRef a read role produced. Nothing here takes a
 // ContentService: reads do not write.
 
@@ -34,18 +34,18 @@ const (
 	// RoleSubtitles is backed by SubtitlesProvider — the addon `subtitles`
 	// resource. It is a source role like the others: it resolves subtitle tracks
 	// for an item. The consumer is a player, which does not exist yet — the role
-	// is defined and filled ahead of it so the source is complete (ADR 0037), the
+	// is defined and filled ahead of it so the source is complete (module-stremio-addons#1), the
 	// same way a stream location is snapshotted before anything resolves it.
 	RoleSubtitles Role = "subtitles"
 	// RolePlayback is backed by PlaybackProvider (playback.go) — the first
 	// *consumer* role, and the one entry here that is not a source. Every role
 	// above brings content in; this one acts on what materialising created,
-	// resolving a Part to playable bytes (ADR 0045). It is what ADR 0036's
+	// resolving a Part to playable bytes (platform#25). It is what platform#24's
 	// affordance gate keys on: with no consumer installed, the library is inert
 	// and the surface is discovery-only.
 	RolePlayback Role = "playback"
 	// RoleArtwork is backed by ArtworkProvider — a source that supplies *only*
-	// artwork for content something else already identified (ADR 0075).
+	// artwork for content something else already identified (sdk#6).
 	//
 	// It is neither a source role nor a consumer role, which is why it is worth
 	// reading twice. Every role above either brings content in or acts on what
@@ -55,7 +55,7 @@ const (
 	// must already know which film you mean — so it can answer exactly one
 	// question and none of the others.
 	//
-	// **It does not satisfy ADR 0035's metadata requirement, and must not be
+	// **It does not satisfy platform#23's metadata requirement, and must not be
 	// used to.** A module that cannot name a film has no business counting
 	// toward the guarantee that Mosaic can name films. That is the specific
 	// mistake this role exists to prevent: declaring RoleMetadata to reach
@@ -64,7 +64,7 @@ const (
 	// deployment that boots and cannot identify content — not a red test.
 	RoleArtwork Role = "artwork"
 	// RoleSettingsUI is backed by SettingsUIProvider — a module contributing its
-	// own settings screen as SDUI (ADR 0038). Unlike the source roles it produces
+	// own settings screen as SDUI (sdk#4). Unlike the source roles it produces
 	// no content: it renders the module's configuration UI, which the Platform
 	// hosts in a bounded settings slot. It is the one place a module contributes a
 	// screen rather than data — scoped to its own settings, never content.
@@ -74,7 +74,7 @@ const (
 // ContentRef identifies a piece of source content that is not (necessarily) in
 // the library yet — the stable handle a virtual result carries so the Platform
 // can dedup it against the library and hand it back to the module to
-// materialise (ADR 0028). It is produced by a read role and consumed by Import.
+// materialise (platform#18). It is produced by a read role and consumed by Import.
 type ContentRef struct {
 	// Provider is the id of the capability that produced this ref and can
 	// materialise it — the Manifest.ID the Platform routes Import back to. A
@@ -88,13 +88,13 @@ type ContentRef struct {
 	// module needs to route and to shape the tree on materialise. Module-owned,
 	// like NativeID.
 	NativeType string
-	// MediaType is the Platform media type this maps to (ADR 0015), for display
+	// MediaType is the Platform media type this maps to (platform#11), for display
 	// and library filtering. The module derives it from NativeType.
 	MediaType MediaType
 	// ExternalScheme and ExternalID are the provider identity the Platform
 	// dedups on: a virtual result whose ExternalID already resolves through
 	// FindContentByExternalID is marked in-library rather than shown as new
-	// (ADR 0028's union). For Stremio these are "imdb" and the IMDB id — the
+	// (platform#18's union). For Stremio these are "imdb" and the IMDB id — the
 	// same pair the module binds the Work under on materialise.
 	ExternalScheme string
 	ExternalID     string
@@ -103,7 +103,7 @@ type ContentRef struct {
 // SearchResult is one candidate a SearchProvider returns — a virtual content
 // item, not a node. It carries enough to render a row and to materialise later
 // (its Ref). InLibrary and NodeID are filled by the Platform when it unions
-// provider results with the library (ADR 0028); a provider leaves them zero.
+// provider results with the library (platform#18); a provider leaves them zero.
 type SearchResult struct {
 	Ref    ContentRef
 	Title  string
@@ -119,7 +119,7 @@ type SearchResult struct {
 // Catalog is one collection a CatalogProvider exposes — a *view* the source
 // computes (Popular, Trending), addressed by its native id. It is not persisted
 // and is not a container in the object graph; materialising a catalog copies its
-// items into the library, it does not import the catalog as an object (ADR 0028).
+// items into the library, it does not import the catalog as an object (platform#18).
 type Catalog struct {
 	// ID is the source-native catalog id, passed back to CatalogItems.
 	ID string
@@ -186,7 +186,7 @@ type CatalogFilterOption struct {
 
 // CatalogItem is one entry of a catalog listing — a virtual content item, the
 // same shape and rules as SearchResult (it is what the admin collection browser
-// renders, ADR 0028). InLibrary and NodeID are Platform-filled.
+// renders, platform#18). InLibrary and NodeID are Platform-filled.
 type CatalogItem struct {
 	Ref       ContentRef
 	Title     string
@@ -197,7 +197,7 @@ type CatalogItem struct {
 }
 
 // Person is one cast or crew credit — a name, and an optional role (a character
-// or a job). Sources that expose only names leave Role empty (ADR 0034).
+// or a job). Sources that expose only names leave Role empty (sdk#3).
 type Person struct {
 	Name string
 	Role string
@@ -209,7 +209,7 @@ type Person struct {
 	Photo string
 }
 
-// EpisodePreview is one episode in a series' descriptive preview (ADR 0034) —
+// EpisodePreview is one episode in a series' descriptive preview (sdk#3) —
 // what a detail screen shows so a user can read the episode list *before*
 // deciding to add the series, including for a virtual series that has no
 // materialised tree. It is a read-only projection, never persisted and never the
@@ -237,7 +237,7 @@ type EpisodePreview struct {
 // RelatedItem is one title related to the one being described — a franchise
 // sibling or a recommendation. It is a *virtual* item like a search result: it
 // carries a Ref so a consumer can open or materialise it, and the Platform fills
-// InLibrary and NodeID when it unions the list against the library (ADR 0028).
+// InLibrary and NodeID when it unions the list against the library (platform#18).
 //
 // It repeats SearchResult's shape rather than reusing it, deliberately. The two
 // are produced by different roles and answer different questions, and collapsing
@@ -256,7 +256,7 @@ type RelatedItem struct {
 }
 
 // Collection is the franchise a work belongs to — "The Matrix Collection", "the
-// other Avatar films" ([ADR 0034](0034) recorded its absence as a gap Cinemeta
+// other Avatar films" ([sdk#3](0034) recorded its absence as a gap Cinemeta
 // could not fill and a TMDB-class source could).
 //
 // It is a *descriptive projection*, not the object graph's collection. The graph
@@ -284,7 +284,7 @@ type Collection struct {
 // between "included in what you already pay for" and "costs money now", which is
 // the first thing a viewer wants to know.
 //
-// Open text with known values, like the media vocabularies (ADR 0015): a source
+// Open text with known values, like the media vocabularies (platform#11): a source
 // may report a kind Mosaic has never heard of, and a consumer that does not
 // recognise one shows it as-is rather than dropping the offer.
 type WatchOfferType string
@@ -375,7 +375,7 @@ type Trailer struct {
 // *descriptive* surface: the flat fields plus, for a series, a read-only episode
 // *preview*. It is still not the materialised tree — a work's children are built
 // inside Import where the source's structure is known — but it is no longer
-// artificially thin (ADR 0034 refines ADR 0027's "flat enrichment DTO").
+// artificially thin (sdk#3 refines sdk#2's "flat enrichment DTO").
 type ContentMetadata struct {
 	Ref      ContentRef
 	Title    string
@@ -385,7 +385,7 @@ type ContentMetadata struct {
 	Backdrop string
 	Genres   []string
 	// Logo is the clearlogo/title-treatment image URL, empty when the source has
-	// none. It renders as a detail hero's title (ADR 0034).
+	// none. It renders as a detail hero's title (sdk#3).
 	Logo string
 	// Cast is the top billed cast, best-first as the source ranks it.
 	Cast []Person
@@ -402,9 +402,9 @@ type ContentMetadata struct {
 	// 0 when unknown.
 	Rating float64
 	// Runtime is a display runtime string ("120 min", "2h 5m") as the source
-	// provides it — display-only, since the format varies (ADR 0034).
+	// provides it — display-only, since the format varies (sdk#3).
 	Runtime string
-	// Episodes is the series episode preview (ADR 0034), empty for a movie or a
+	// Episodes is the series episode preview (sdk#3), empty for a movie or a
 	// meta-only source. A read projection the UI groups by season; not the tree.
 	Episodes []EpisodePreview
 	// Keywords are the source's own descriptive tags ("dystopia", "time loop") —
@@ -440,9 +440,9 @@ type ContentMetadata struct {
 
 // StreamLink is one playable location a StreamProvider resolves for a
 // materialised item's ContentRef (the `stream` resource). Location is ready to
-// attach as a Part (ADR 0014): Stremio yields RemoteLocation refs (a direct URL
-// or a magnet), which the Platform snapshots onto the curated item (ADR 0028).
-// The descriptive fields (ADR 0037) let a future source-picker rank and display
+// attach as a Part (platform#10): Stremio yields RemoteLocation refs (a direct URL
+// or a magnet), which the Platform snapshots onto the curated item (platform#18).
+// The descriptive fields (module-stremio-addons#1) let a future source-picker rank and display
 // candidates; they are best-effort — a source that does not report a field
 // leaves it zero.
 type StreamLink struct {
@@ -468,7 +468,7 @@ type StreamLink struct {
 	// be moving values across, not translating them.
 	//
 	// A module already knows all three — it parses them at its own boundary
-	// ([ADR 0051](0051)) — and until now had nowhere to put them, so the parse
+	// ([module-stremio-addons#2](0051)) — and until now had nowhere to put them, so the parse
 	// was narrowed to Quality, SizeBytes and Seeders on the way out and every
 	// candidate arrived saying less than its source had said. An empty field is
 	// not neutral here: the same fields left empty on a Part once had ten
@@ -477,7 +477,7 @@ type StreamLink struct {
 	// **Best-effort, and a guess rather than a measurement.** These come from
 	// release text, which lies, and no parse can see inside a file. What a
 	// release actually contains is settled by probing the bytes before it plays
-	// ([ADR 0050](0050)); what these do is make a candidate list *rankable*
+	// ([platform#29](0050)); what these do is make a candidate list *rankable*
 	// before anything has been fetched. A source that does not report one
 	// leaves it empty, like every other descriptive field here.
 	//
@@ -509,7 +509,7 @@ type StreamLink struct {
 	// **Best-effort and nominal, like everything else here.** "2160p" means
 	// 3840×2160 whatever the release's real aspect, and release text names HDR
 	// far less reliably than it names resolution. The bytes settle it at probe
-	// time ([ADR 0050](0050)); what these do is let a candidate list be ranked
+	// time ([platform#29](0050)); what these do is let a candidate list be ranked
 	// before anything is fetched.
 	//
 	// Spell HDRFormat as `Part` does — "HDR10", "HLG", "DolbyVision" — and leave
@@ -537,7 +537,7 @@ type Subtitle struct {
 // SubtitlesProvider resolves subtitle tracks for a materialised item's
 // ContentRef (the `subtitles` resource). A module fills RoleSubtitles by
 // implementing it. Like StreamProvider it is a source role; the consumer is a
-// player (ADR 0036's deferred playback capability), so a provider may exist
+// player (platform#24's deferred playback capability), so a provider may exist
 // before anything consumes it.
 type SubtitlesProvider interface {
 	Subtitles(ctx context.Context, req SubtitlesRequest) (SubtitlesResponse, error)
@@ -554,7 +554,7 @@ type SubtitlesRequest struct {
 	// what StreamRequest's do: both zero for a film, 1-based for a series as the
 	// source numbers them, season 0 being specials.
 	//
-	// They are here for StreamRequest's reason ([ADR 0073](0073)) rather than a
+	// They are here for StreamRequest's reason ([platform#46](0073)) rather than a
 	// new one. A subtitles provider is asked about content it did not source,
 	// so the Ref carries a *shared* external identity and no native id, and a
 	// provider whose episode addressing is derived composes it from these. The
@@ -580,7 +580,7 @@ type SubtitlesResponse struct {
 // and the id under it ("imdb"/"tt0083658", "tvdb"/"73739").
 //
 // It is the *neutral* addressing a provider is handed when it did not source the
-// content it is being asked about (ADR 0073, ADR 0075). A native id is the
+// content it is being asked about (platform#46, sdk#6). A native id is the
 // producing module's own business and means nothing to anyone else; a shared
 // identity is the one thing two modules that have never heard of each other can
 // both recognise.
@@ -596,7 +596,7 @@ type ExternalIdentity struct {
 //
 // It is called only about content it did not source, which is the whole point:
 // the Platform runs it as a best-effort enrichment pass over a materialised work
-// (ADR 0075), the same shape ADR 0073 established for stream providers. A
+// (sdk#6), the same shape platform#46 established for stream providers. A
 // provider that recognises none of the identities it was handed returns an empty
 // response and **no error** — being asked about content it does not know is
 // normal, not a failure, and an error there would make an artwork source being
@@ -612,7 +612,7 @@ type ArtworkProvider interface {
 // differs from how StreamRequest is invoked. Which identifier a source prefers
 // is the source's business: a real artwork database keys films by one scheme and
 // television by another, and letting the module pick from what is available
-// keeps that dialect where ADR 0051 says it belongs. Looping identity-by-identity
+// keeps that dialect where module-stremio-addons#2 says it belongs. Looping identity-by-identity
 // Platform-side would also turn one decline into several.
 type ArtworkRequest struct {
 	Caller   Caller
@@ -642,7 +642,7 @@ type ArtworkResponse struct {
 }
 
 // SettingsUIProvider lets a module contribute its own settings screen as SDUI
-// (ADR 0038). The SDK stays SDUI-agnostic: the screen is returned as a
+// (sdk#4). The SDK stays SDUI-agnostic: the screen is returned as a
 // serialised UINode tree (JSON bytes), not a typed SDUI value, so the contract
 // does not depend on the SDUI package. The module builds it with the published
 // mosaic-sdui producer binding; the Platform validates the bytes and renders
@@ -674,8 +674,8 @@ type MetadataProvider interface {
 }
 
 // MetadataRequest is what the Platform hands MetadataProvider. Every provider
-// request carries the Caller it acts as (ADR 0017) and the module's Settings
-// (ADR 0021) — the same two the Platform hands Import — plus the role's params.
+// request carries the Caller it acts as (platform#13) and the module's Settings
+// (platform#17) — the same two the Platform hands Import — plus the role's params.
 type MetadataRequest struct {
 	Caller   Caller
 	Settings []byte
@@ -784,8 +784,8 @@ type CatalogItemsResponse struct {
 //
 // It is called in two situations that look the same and are not. In the first,
 // the module itself materialised the item and the Ref is its own — the case
-// since ADR 0027. In the second, **another module sourced the metadata and this
-// provider is being asked to supply the streams for it** (ADR 0073): the Ref
+// since sdk#2. In the second, **another module sourced the metadata and this
+// provider is being asked to supply the streams for it** (platform#46): the Ref
 // then carries a *shared* external identity (`imdb`, `tvdb`) with no native id
 // at all, and the provider derives its own addressing from that plus the
 // request's Season and Episode.
@@ -808,7 +808,7 @@ type StreamRequest struct {
 	// season 0 being the specials a source may or may not have.
 	//
 	// They exist because a stream provider is now asked about content it did not
-	// source ([ADR 0073](0073)), and in that case the Ref carries a *shared*
+	// source ([platform#46](0073)), and in that case the Ref carries a *shared*
 	// external identity rather than the provider's own id. A provider whose
 	// episode addressing is derived — "the series' id, a colon, the season, a
 	// colon, the episode" is one real example — composes it from these, because

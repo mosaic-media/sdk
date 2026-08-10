@@ -2,7 +2,7 @@ package v1
 
 import "time"
 
-// RelationType is the kind of association an edge asserts (ADR 0013).
+// RelationType is the kind of association an edge asserts (platform#9).
 // Unlike MediaType this is closed and Platform-owned: it is the vocabulary
 // of the association graph itself, not of the things being associated, and
 // code reads specific types to build specific features.
@@ -48,14 +48,14 @@ const (
 )
 
 // Relation is a typed, directed, confidence-scored edge in the association
-// graph (ADR 0013).
+// graph (platform#9).
 //
 // Containment and association are separate structures on purpose.
 // Containment — a season contains episodes — is a tree and lives in Node.
 // Association — this anime adapts that manga, these films belong to one
 // collection — is a graph, and it does not nest. This is the graph.
 //
-// Edges are written once and never age: ADR 0013 records that relation
+// Edges are written once and never age: platform#9 records that relation
 // confidence has no decay or reverification policy, so Confidence is the
 // score at write time and nothing rechecks it. There is deliberately no
 // UpdatedAt.

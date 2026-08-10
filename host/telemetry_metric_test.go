@@ -13,10 +13,10 @@ import (
 // is the test that says so.
 //
 // **The failure it guards against is invisible in every other configuration.**
-// Three of Mosaic's modules run out of process (ADR 0077) and the rest run in
+// Three of Mosaic's modules run out of process (sdk#7) and the rest run in
 // it, so a bridge that accepted a Count and dropped it would work perfectly in
 // development, in every in-process test, and for three of six modules in
-// production. It would also be the exact thing ADR 0059 refused to publish — a
+// production. It would also be the exact thing sdk#5 refused to publish — a
 // counter that discards silently — rebuilt by omission rather than by decision.
 func TestMetricCallsCrossTheHarness(t *testing.T) {
 	impl := &recordingTelemetry{}
@@ -49,7 +49,7 @@ func TestMetricCallsCrossTheHarness(t *testing.T) {
 	}
 
 	// A classified value must not be reconstructed on the far side. Secret
-	// drops at construction (ADR 0056), so what crosses the wire is already
+	// drops at construction (platform#34), so what crosses the wire is already
 	// the placeholder — asserting it here is what proves the boundary did not
 	// re-widen when the metric calls were added beside the log ones.
 	for _, f := range impl.counts[0].attrs {
@@ -61,7 +61,7 @@ func TestMetricCallsCrossTheHarness(t *testing.T) {
 
 // A unit this build does not know must arrive as unitless rather than as a
 // value the Platform would pass along without understanding — the property that
-// makes the vocabulary closed in the sense ADR 0130 means.
+// makes the vocabulary closed in the sense sdk#9 means.
 func TestAnUnknownUnitArrivesUnitlessRatherThanInvented(t *testing.T) {
 	if got := unitToWire(v1.Unit("furlongs")); got != modulev1.MetricUnit_METRIC_UNIT_UNSPECIFIED {
 		t.Errorf("an unknown unit went onto the wire as %v", got)

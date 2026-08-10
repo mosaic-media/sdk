@@ -1,7 +1,7 @@
 # Mosaic SDK
 
 The public contract language between the Mosaic Platform and the Modules that
-extend it ([ADR 0008](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0008-sdk-as-public-contract-language.md)).
+extend it ([sdk#1](docs/adr/0001-sdk-as-public-contract-language.md)).
 A Module compiles against this module and nothing else of the Platform's.
 
 It is deliberately small. Today it carries the **content surface**
@@ -12,8 +12,8 @@ query and result types, the `ContentService` interface a capability calls, the
 populate the virtual plane (metadata, search, catalog, stream, subtitles) and
 the consumer role that acts on the materialised library (playback) — and
 the opaque `Caller` a capability forwards from its invocation context
-([ADR 0016](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0016-published-contract-surface.md),
-[ADR 0017](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0017-how-a-capability-acts.md)).
+([platform#12](https://github.com/mosaic-media/platform/blob/main/docs/adr/0012-published-contract-surface.md),
+[platform#13](https://github.com/mosaic-media/platform/blob/main/docs/adr/0013-how-a-capability-acts.md)).
 
 It holds **no** storage contracts, no transaction type, no identity or
 configuration models, and no Platform implementation — a capability calls
@@ -60,12 +60,12 @@ and modules build against it as an ordinary tagged dependency, with no
 `replace`.
 
 **`v0.29.0` — counters and histograms**
-([ADR 0130](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0130-the-module-metric-surface.md)).
+([sdk#9](docs/adr/0009-the-module-metric-surface.md)).
 `v1.Telemetry` gains `Count(name, delta, attrs…)` and
 `Measure(name, value, unit, attrs…)`, on the same ambient handle as the log and
 span calls — there is no instrument to construct, hold or thread anywhere.
 
-[ADR 0059](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0059-modules-observe-through-the-sdk.md)
+[sdk#5](docs/adr/0005-modules-observe-through-the-sdk.md)
 deliberately published neither, on the grounds that a counter which silently
 discards is worse than no counter at all, and said they would join the surface
 when the Platform could back them. It now can.
@@ -83,7 +83,7 @@ to log fields. Adding `go.opentelemetry.io/otel/metric` takes the API allowlist
 from three modules to four.
 
 **`v0.28.0` — OpenTelemetry behind the telemetry surface**
-([ADR 0128](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0128-opentelemetry-is-the-telemetry-implementation.md)).
+([sdk#8](docs/adr/0008-opentelemetry-is-the-telemetry-implementation.md)).
 **The surface you write against did not change.** `v1.TelemetryFrom(ctx)`,
 `v1.Telemetry`, `v1.Span` and the classified `v1.Field` constructors keep their
 shapes and their semantics, so a module needs no change beyond this bump. What
@@ -142,7 +142,7 @@ interface; `v0.3.0` added the `ImportRequest` that hands a module its settings;
 the subtitles role and richer `StreamLink`, and `v0.8.0` the settings-UI role.
 
 **`v0.9.0` opens the consumer side** — `RolePlayback` and `PlaybackProvider`
-([ADR 0045](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0045-playback-consumer-and-media-origin.md)),
+([platform#25](https://github.com/mosaic-media/platform/blob/main/docs/adr/0025-playback-consumer-and-media-origin.md)),
 the first role that *acts on* the materialised library rather than sourcing
 into it. It is one method: a provider resolves a `Part` to a playable location
 and never serves bytes, because the Platform owns transports. The `Served`
@@ -158,8 +158,8 @@ forced it.
 **`v0.21.0` turns artwork into a candidate set and adds the eighth role** —
 `ArtworkCandidate`, `ArtworkSlot`, `Artwork.Candidates`, `RoleArtwork`,
 `ArtworkProvider` and `ExternalIdentity`
-([ADR 0074](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0074-artwork-is-a-candidate-set.md),
-[ADR 0075](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0075-the-artwork-provider-role.md)).
+([platform#47](https://github.com/mosaic-media/platform/blob/main/docs/adr/0047-artwork-is-a-candidate-set.md),
+[sdk#6](docs/adr/0006-the-artwork-provider-role.md)).
 
 `Artwork` held one URL per slot, so a source that returns forty posters — which
 is what a dedicated artwork database *is* — had thirty-nine discarded, and a
@@ -179,14 +179,14 @@ measure different things — it orders within a source and nowhere else.
 
 `RoleArtwork` is neither a source role nor a consumer role: it enriches content
 that already exists. Its doc comment says plainly that it does **not** satisfy
-[ADR 0035](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0035-metadata-as-required-capability.md)'s
+[platform#23](https://github.com/mosaic-media/platform/blob/main/docs/adr/0023-metadata-as-required-capability.md)'s
 metadata requirement, because the tempting shortcut — declaring `RoleMetadata`
 to reach `ContentMetadata`'s image fields — would pass the composition-root
 check with a module that cannot name a film.
 
 **`v0.20.0` adds `StreamRequest.Season` and `StreamRequest.Episode`** — neutral
 coordinates for an episode, so a stream provider can be asked about content it
-did not source ([ADR 0073](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0073-stream-resolution-is-decoupled-from-metadata-provenance.md)).
+did not source ([platform#46](https://github.com/mosaic-media/platform/blob/main/docs/adr/0046-stream-resolution-is-decoupled-from-metadata-provenance.md)).
 
 The Ref in that case carries a *shared* external identity (`imdb`, `tvdb`)
 rather than the provider's own id, and the provider composes its native
@@ -206,7 +206,7 @@ over a node's module-owned `Attributes` document, so a capability can ask
 "which of my works did some module tag *this* way".
 
 Containment rather than a typed filter, because attributes are opaque to the
-Platform by design (ADR 0013 assigns their correctness to the writing
+Platform by design ([platform#9](https://github.com/mosaic-media/platform/blob/main/docs/adr/0009-object-graph.md) assigns their correctness to the writing
 capability). A typed filter would make the Platform learn what a module put
 there, which is the coupling the arrangement exists to avoid; *does this
 document contain this shape* is the one question that can be asked without
@@ -243,7 +243,7 @@ title at a time** — `Keywords`, `Certification`, `Similar []RelatedItem`,
 `Collection` and `Trailer` as new types.
 
 Three of those close gaps
-[ADR 0034](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0034-rich-metadata-preview.md)
+[sdk#3](docs/adr/0003-rich-metadata-preview.md)
 recorded rather than invented: a franchise ("the other Avatar films"), related
 titles, and the finer-grained tags that make "more like this" mean anything. The
 addon protocol carries none of them, so the fields waited for a source that does.
@@ -270,8 +270,8 @@ than substituted when a source has none.
 
 **`v0.15.0` stores artwork on the node** — an `Artwork` value (poster,
 backdrop, logo) on `Node` and on `AddContentWorkCommand` / `AddContentChildCommand`
-([ADR 0071](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0071-content-artwork-is-stored-on-the-node.md)).
-Descriptive metadata is otherwise re-derived live from the provider (ADR 0034);
+([platform#45](https://github.com/mosaic-media/platform/blob/main/docs/adr/0045-content-artwork-is-stored-on-the-node.md)).
+Descriptive metadata is otherwise re-derived live from the provider ([sdk#3](docs/adr/0003-rich-metadata-preview.md));
 artwork alone is written at materialisation and read back, because it is
 rendered in bulk on list surfaces like the continue-watching rail — one node
 read instead of a metadata round-trip per card — and because it is the one piece
@@ -279,7 +279,7 @@ of art a user may later want to override, which is possible only for something
 the library owns.
 
 **`v0.14.0` opens the per-user tier** — playback state
-([ADR 0046](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0046-playback-state-is-platform-owned.md)):
+([platform#26](https://github.com/mosaic-media/platform/blob/main/docs/adr/0026-playback-state-is-platform-owned.md)):
 `RecordPlaybackProgress`, `SetPlaybackFinished`, and the reads behind resume, a
 watched mark and a continue-watching list. Every other method on this surface
 operates on an install-global graph; a position belongs to a person, and this is
@@ -291,7 +291,7 @@ business resolving bytes can still read progress.
 
 **`v0.13.0` gives modules a voice** — `Telemetry`, reached with
 `TelemetryFrom(ctx)`, and the redaction-classed `Field` that crosses with it
-([ADR 0059](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0059-modules-observe-through-the-sdk.md)).
+([sdk#5](docs/adr/0005-modules-observe-through-the-sdk.md)).
 Before it, a module could return an error or print to the Platform's stdout,
 and neither could be filtered, correlated or classified. The Platform owns the
 observability plane and implements the interface; a module emits and configures
@@ -309,15 +309,15 @@ Platform's license (AGPL-3.0 with a Module Linking Exception).
 
 **`host/v0.1.0` — the module runs as its own process, and the contract does
 not change.** `sdk/host` is a **nested module** with its own `go.mod`
-([ADR 0064](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0064-extension-module-boundary.md),
-[ADR 0077](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0077-go-plugin-as-the-extension-harness.md)).
+([platform#39](https://github.com/mosaic-media/platform/blob/main/docs/adr/0039-extension-module-boundary.md),
+[sdk#7](docs/adr/0007-go-plugin-as-the-extension-harness.md)).
 A module gains a `main.go` of `func main() { host.Serve(mymodule.New()) }` and
 otherwise keeps the code it has.
 
 **Nothing in `sdk` itself moved, and that is the point.** The harness needs
 `hashicorp/go-plugin`, gRPC and the generated wire bindings; this module's
 `go.mod` is still a module line and a Go version. That is the property
-[ADR 0059](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0059-modules-observe-through-the-sdk.md)
+[sdk#5](docs/adr/0005-modules-observe-through-the-sdk.md)
 established when it declared a telemetry interface rather than re-exporting
 OpenTelemetry, and `host` carries the test that asserts it — a `go get` in the
 wrong directory is all it would take, and nothing else would fail.
@@ -337,7 +337,7 @@ module code never has to know.
 **`host/v0.2.0` — the module's egress is pre-wired to the Platform's proxy.**
 `host.Serve` now routes the process's default HTTP transport through the forward
 proxy the Platform names in `MOSAIC_EGRESS_PROXY`
-([ADR 0064](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0064-extension-module-boundary.md)),
+([platform#39](https://github.com/mosaic-media/platform/blob/main/docs/adr/0039-extension-module-boundary.md)),
 so an out-of-process module's outbound calls carry the same deny list the
 in-process client had — a module cannot reach the host's own PostgreSQL, its
 LAN, or the cloud metadata endpoint through a URL a user supplied.
@@ -350,7 +350,7 @@ module using an ordinary client would reach `127.0.0.1` *around* the proxy.
 Forcing the transport's `Proxy` to always return the proxy URL has no such
 exception. A module that builds a fully custom transport with an explicit nil
 `Proxy` can still bypass it; that residual gap is what OS-level network denial
-(ADR 0064's layer 3) closes.
+([platform#39](https://github.com/mosaic-media/platform/blob/main/docs/adr/0039-extension-module-boundary.md)'s layer 3) closes.
 
 **`host/v0.3.0` — a module can print its own manifest.** Run a module binary
 with `--mosaic-manifest` and it prints its `Manifest()` — id, version, name,
@@ -425,7 +425,7 @@ total nor a known page size still has no basis for either and leaves it false.
 *Library side.* `Node.Genres`, `AddContentWorkCommand.Genres` and
 `SearchContentQuery.Genres`. Genres are stored on the node rather than in the
 untyped `Attributes` document for
-[ADR 0071](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0071-content-artwork-is-stored-on-the-node.md)'s
+[platform#45](https://github.com/mosaic-media/platform/blob/main/docs/adr/0045-content-artwork-is-stored-on-the-node.md)'s
 reason — universal display data, not per-media-type variation — plus one artwork
 does not have: a genre is **filtered** in bulk rather than rendered in bulk, and
 a facet whose source is a cache omits every title the cache has not reached,
@@ -461,7 +461,7 @@ cost the same round of module bumps either way.
 
 *`StreamLink.Container`, `.VideoCodec`, `.AudioCodec`.* A module parses all
 three at its boundary
-([ADR 0051](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0051-modules-as-anti-corruption-layers.md))
+([module-stremio-addons#2](https://github.com/mosaic-media/module-stremio-addons/blob/main/docs/adr/0002-modules-as-anti-corruption-layers.md))
 and had nowhere to put them, so the parse was narrowed to `Quality`,
 `SizeBytes` and `Seeders` on the way out of `Streams` and every candidate
 arrived saying less than its source had said. The names are `Part`'s, spelled
@@ -471,7 +471,7 @@ should be moving values across rather than translating them.
 They are a **guess, not a measurement**, and the doc comment says so: release
 text lies and no parse can see inside a file, so what a release actually
 contains is still settled by probing the bytes
-([ADR 0050](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0050-probing-and-the-per-stream-playback-decision.md)).
+([platform#29](https://github.com/mosaic-media/platform/blob/main/docs/adr/0029-probing-and-the-per-stream-playback-decision.md)).
 What they buy is a candidate list that is *rankable* before anything has been
 fetched. Codecs are spelled the way ffprobe spells them — `hevc`, `h264`,
 `eac3` — so a parsed guess and a probed fact are comparable; a container is the
@@ -479,7 +479,7 @@ bare lowercased extension.
 
 *`SubtitlesRequest.Season` and `.Episode`.* The same two coordinates
 `StreamRequest` gained in `v0.20.0`, for
-[ADR 0073](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0073-stream-resolution-is-decoupled-from-metadata-provenance.md)'s
+[platform#46](https://github.com/mosaic-media/platform/blob/main/docs/adr/0046-stream-resolution-is-decoupled-from-metadata-provenance.md)'s
 reason. The two requests matched only by accident: streams grew the coordinates
 when the enrichment pass began asking providers about content they had not
 sourced, and subtitles did not, because nothing consumed subtitles yet. The

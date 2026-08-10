@@ -19,7 +19,7 @@ import (
 
 // The classification has to survive the conversion to OpenTelemetry, because
 // OTel has no notion of one: `attribute.String(k, v)` carries `v`, full stop.
-// This is the property ADR 0056 exists for, checked at the boundary ADR 0059
+// This is the property platform#34 exists for, checked at the boundary sdk#5
 // says it matters most — third-party code is where an unclassified value is
 // most likely to originate.
 func TestRedactionSurvivesTheConversionToOTel(t *testing.T) {

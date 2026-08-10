@@ -2,7 +2,7 @@ package v1
 
 import "time"
 
-// MatchMethod records how a source was matched to a Node (ADR 0013).
+// MatchMethod records how a source was matched to a Node (platform#9).
 // Closed and Platform-owned: identity resolution is Platform machinery.
 type MatchMethod string
 
@@ -26,7 +26,7 @@ const (
 	// BindingConfirmed is a settled binding. A merge is exactly this: a
 	// confirmed, high-confidence binding.
 	BindingConfirmed BindingStatus = "confirmed"
-	// BindingPendingReview is a weak match. ADR 0013 makes identity
+	// BindingPendingReview is a weak match. platform#9 makes identity
 	// resolution explicit rather than implicit: a weak match lands here and
 	// surfaces to the user rather than silently merging two different works
 	// that happen to share a title.
@@ -37,7 +37,7 @@ const (
 )
 
 // SourceBinding ties an external source to a Node with an explicit,
-// inspectable confidence (ADR 0013).
+// inspectable confidence (platform#9).
 //
 // The operations follow from the shape rather than needing their own
 // concepts. A merge is a confirmed high-confidence binding. A split moves a

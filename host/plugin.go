@@ -25,7 +25,7 @@ const PluginName = "capability"
 // broker id field on every request that can call back.
 //
 // It is unnecessary here because **the connection is not what scopes
-// authority — the Caller handle is** (ADR 0064). One long-lived callback
+// authority — the Caller handle is** (platform#39). One long-lived callback
 // connection per module process, with a handle minted and revoked per
 // invocation, gives exactly the property the per-invocation design was reaching
 // for: a retained connection is useless without a live handle, and a handle
@@ -35,7 +35,7 @@ const PluginName = "capability"
 const callbackBrokerID = 1
 
 // SDKMajor is the SDK major version this harness speaks, and it is the whole
-// compatibility story (ADR 0064). A module and a Platform are compatible when
+// compatibility story (platform#39). A module and a Platform are compatible when
 // they share an SDK major, so there is one number a user reasons about rather
 // than two — the proto package version tracks it, and go-plugin's
 // ProtocolVersion below carries it on the wire.
@@ -131,7 +131,7 @@ func ServePluginMap(impl v1.Capability) map[string]goplugin.Plugin {
 
 // ClientPluginMap is what the Platform passes to go-plugin's client. The
 // services given here are what the module calls back into, and every call it
-// makes re-authorises as the invoking user (ADR 0017).
+// makes re-authorises as the invoking user (platform#13).
 func ClientPluginMap(content v1.ContentService, telemetry v1.Telemetry, categoryOf CategoryFunc) map[string]goplugin.Plugin {
 	return map[string]goplugin.Plugin{
 		PluginName: &Plugin{

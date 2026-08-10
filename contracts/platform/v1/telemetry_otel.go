@@ -13,7 +13,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-// OpenTelemetry behind the surface (ADR 0128).
+// OpenTelemetry behind the surface (sdk#8).
 //
 // **The surface above this file did not change, and that is the decision.**
 // A module still writes `v1.TelemetryFrom(ctx).Info("…", v1.String(…))`, still
@@ -30,7 +30,7 @@ import (
 //
 // **This file takes the OTel *API* and never the SDK.** A module gets `log.Logger`
 // and `trace.Tracer` — interfaces it receives — and no provider, no exporter, no
-// sampler and no global. That is ADR 0059's ownership rule unchanged: the
+// sampler and no global. That is sdk#5's ownership rule unchanged: the
 // Platform decides where a record goes, how long it lives and who may read it.
 // A module that reached for `otel.SetLoggerProvider` would be configuring the
 // Platform's observability plane from inside it, which is the thing this
@@ -45,7 +45,7 @@ import (
 //
 // It is exported because more than one component performs the conversion: the
 // Platform for in-process modules, and the extension host for out-of-process
-// ones (ADR 0077). A second copy of this rule living over there is exactly how a
+// ones (sdk#7). A second copy of this rule living over there is exactly how a
 // fail-closed guarantee quietly stops being one.
 type Encoder struct {
 	// Digest resolves an Identifier field to its stable pseudonym.
@@ -53,7 +53,7 @@ type Encoder struct {
 	// **Nil drops Identifier fields rather than emitting them**, and that is the
 	// deliberate failure direction. Identifier is the one class that carries its
 	// value across the module boundary, because only the Platform holds the
-	// install salt (ADR 0059) — so an encoder with no salt is one that cannot
+	// install salt (sdk#5) — so an encoder with no salt is one that cannot
 	// keep the promise the class makes, and emitting the raw value instead would
 	// turn a pseudonymisation feature into a leak. Nobody has to remember: an
 	// unconfigured encoder is a safe one.
@@ -146,7 +146,7 @@ type TelemetryOptions struct {
 	// It is a `metric.Meter` — an interface the caller supplies — and never a
 	// `MeterProvider`, for the same reason Logger is not a LoggerProvider: a
 	// provider is where views, readers and exporters are configured, and that
-	// is the Platform's (ADR 0059). A module receives the one thing it needs to
+	// is the Platform's (sdk#5). A module receives the one thing it needs to
 	// record and nothing it could use to decide where the recording goes.
 	Meter metric.Meter
 	// Digest resolves Identifier fields. See Encoder.Digest — nil drops them.
@@ -278,7 +278,7 @@ func (s *otelSpan) Fail(err error) {
 
 func (s *otelSpan) End() { s.span.End() }
 
-// The metric half (ADR 0130).
+// The metric half (sdk#9).
 //
 // **The instrument is created on every call, and that is not the oversight it
 // looks like.** An OpenTelemetry meter caches by the instrument's identifying
@@ -336,7 +336,7 @@ func unitAnnotation(u Unit) string {
 // reportInstrument says once, per invocation, that an instrument could not be
 // created.
 //
-// **A metric that silently discards is the specific failure ADR 0059 refused to
+// **A metric that silently discards is the specific failure sdk#5 refused to
 // ship**, and the only way to create an instrument wrongly is to name it
 // wrongly — a name OpenTelemetry rejects, which no test against a no-op meter
 // would ever reveal. So it is reported through the channel the module is

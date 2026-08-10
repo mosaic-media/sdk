@@ -8,7 +8,7 @@ import (
 )
 
 // TestArtworkDecodesADocumentWrittenBeforeCandidates is the compatibility claim
-// ADR 0074 rests on, made executable.
+// platform#47 rests on, made executable.
 //
 // Artwork is stored as a jsonb document and migration 0019 predicted that a
 // candidate set could be added "without a second migration". That is only true
@@ -112,7 +112,7 @@ func TestArtworkSlotFallsBackToCandidates(t *testing.T) {
 	if got := art.Slot(v1.ArtworkDisc); got != "" {
 		t.Errorf("Slot(disc) = %q, want empty", got)
 	}
-	// An unrecognised slot is not an error. The vocabulary is open (ADR 0015),
+	// An unrecognised slot is not an error. The vocabulary is open (platform#11),
 	// so a source with a type this build has never heard of must not panic a
 	// consumer that asks about it.
 	if got := art.Slot(v1.ArtworkSlot("holographic")); got != "" {
@@ -148,7 +148,7 @@ func TestArtworkCandidatesFor(t *testing.T) {
 	}
 }
 
-// TestArtworkEmpty covers the distinction ADR 0074 draws between a node with no
+// TestArtworkEmpty covers the distinction platform#47 draws between a node with no
 // art and a node whose art failed to resolve — the second has candidates and no
 // selection, and reporting it as empty would hide a resolution bug.
 func TestArtworkEmpty(t *testing.T) {

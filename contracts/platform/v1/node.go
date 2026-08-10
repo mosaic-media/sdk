@@ -9,7 +9,7 @@ import (
 // form: lowercase, with any run of separators collapsed to a single
 // underscore.
 //
-// The open vocabularies (ADR 0015) are unconstrained text, so "Anime Series",
+// The open vocabularies (platform#11) are unconstrained text, so "Anime Series",
 // "anime-series" and "anime_series" would otherwise be three distinct types
 // browsing as three separate libraries. Normalising collapses them to one.
 // It does not — and cannot — catch "animeseries" or a genuine misspelling;
@@ -56,7 +56,7 @@ func NormaliseContainerType(s string) ContainerType { return ContainerType(Norma
 // NormaliseItemType is NormaliseTypeName in the ItemType type.
 func NormaliseItemType(s string) ItemType { return ItemType(NormaliseTypeName(s)) }
 
-// NodeKind is a Node's structural role in the containment tree (ADR 0013).
+// NodeKind is a Node's structural role in the containment tree (platform#9).
 // It is closed and Platform-owned: the tree has exactly these three roles,
 // and code that traverses the tree relies on them.
 type NodeKind string
@@ -77,10 +77,10 @@ const (
 // anime_series, album, book, manga_series, comic_series, podcast,
 // iptv_channel, collection, artist and whatever comes next.
 //
-// It is deliberately open (ADR 0015). The Platform never branches on a
+// It is deliberately open (platform#11). The Platform never branches on a
 // media type, so it is descriptive rather than structural, and constraining
 // it to a fixed list would make every new media type a schema migration —
-// the outcome ADR 0013 exists to prevent. The database stores it as
+// the outcome platform#9 exists to prevent. The database stores it as
 // unconstrained text.
 //
 // Nothing validates it, which means a typo fragments a library silently:
@@ -90,7 +90,7 @@ const (
 // introduce a type.
 type MediaType string
 
-// The media types named in ADR 0013, provided as constants for the
+// The media types named in platform#9, provided as constants for the
 // Platform's own use. The list is a starting vocabulary, not a closed set —
 // see MediaType.
 const (
@@ -110,7 +110,7 @@ const (
 // the same reason as MediaType.
 type ContainerType string
 
-// The container types named in ADR 0013.
+// The container types named in platform#9.
 const (
 	ContainerSeason ContainerType = "season"
 	ContainerVolume ContainerType = "volume"
@@ -123,7 +123,7 @@ const (
 // reason as MediaType.
 type ItemType string
 
-// The item types named in ADR 0013.
+// The item types named in platform#9.
 const (
 	ItemEpisode ItemType = "episode"
 	ItemTrack   ItemType = "track"
@@ -139,13 +139,13 @@ type NodeStatus string
 const (
 	// NodeActive is a Node with at least one SourceBinding.
 	NodeActive NodeStatus = "active"
-	// NodeOrphaned is a Node whose last binding was removed. ADR 0013 is
+	// NodeOrphaned is a Node whose last binding was removed. platform#9 is
 	// explicit that this is not deletion: removing the last source leaves
 	// the Node standing, and deleting it is a decision a user confirms.
 	NodeOrphaned NodeStatus = "orphaned"
 )
 
-// Node is one position in the containment tree (ADR 0013). Depth is
+// Node is one position in the containment tree (platform#9). Depth is
 // whatever a given work's real structure needs: a film is Work → Item, a
 // series is Work → Container(season) → Item(episode), and a chapter-only
 // manga is Work → Item until a volume layer is inserted later.
@@ -170,7 +170,7 @@ type Node struct {
 	ItemType ItemType
 	Title    string
 	// NaturalOrder sorts siblings. It is a float so that 5.5 inserts
-	// between 5 and 6 without renumbering the rest. ADR 0013 leaves the
+	// between 5 and 6 without renumbering the rest. platform#9 leaves the
 	// exact fractional scheme at large scale unsettled, so the Platform
 	// stores whatever value it is given and does not rebalance.
 	NaturalOrder float64
@@ -183,13 +183,13 @@ type Node struct {
 	// Attributes is where per-media-type variation lives instead of in
 	// per-type columns.
 	//
-	// Neither document is validated by the schema: ADR 0013 assigns their
+	// Neither document is validated by the schema: platform#9 assigns their
 	// correctness to the writing capability. Both are GIN-indexed, so they
 	// are queryable but not typed.
 	Attributes []byte
 	// Artwork is the node's stored image URLs — poster, backdrop, logo (ADR
 	// 0071). Unlike the rest of the descriptive surface, which a detail screen
-	// re-derives live from the provider (ADR 0034), artwork is written at
+	// re-derives live from the provider (sdk#3), artwork is written at
 	// materialisation and read back here, so a list surface renders it without a
 	// per-card metadata call and a user can later override it. Empty when the
 	// node was written before artwork was stored, or the source had none.
@@ -200,7 +200,7 @@ type Node struct {
 	// **It is on the node for the reason artwork is, plus one artwork does not
 	// have.** Like artwork it is universal rather than per-media-type variation,
 	// so it is a typed field and not a corner of the untyped Attributes document
-	// (ADR 0013, ADR 0071). Unlike artwork it is not rendered in bulk — it is
+	// (platform#9, platform#45). Unlike artwork it is not rendered in bulk — it is
 	// *filtered* in bulk, which is a stronger reason to want it here: a facet
 	// that reads a cache omits every title the cache has not reached yet, and an
 	// omission from a filtered list is invisible.

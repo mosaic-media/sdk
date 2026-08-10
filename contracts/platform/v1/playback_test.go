@@ -10,7 +10,7 @@ import (
 // stubPlayer is a consumer module: it fills RolePlayback and *no source role*.
 // That is the point of testing it separately from stubProvider — a consumer is
 // not a source that happens to also play, and nothing in the contract should
-// require it to import content it did not source (ADR 0045).
+// require it to import content it did not source (platform#25).
 type stubPlayer struct{}
 
 func (stubPlayer) Manifest() v1.Manifest {
@@ -71,7 +71,7 @@ func TestPlaybackProviderImplementableExternally(t *testing.T) {
 
 // TestPlaybackRoleIsNotASourceRole guards the distinction the role vocabulary
 // now carries: a consumer must not be resolvable as any source provider, or the
-// registry's role check (and ADR 0036's gate) would read a player as a source.
+// registry's role check (and platform#24's gate) would read a player as a source.
 func TestPlaybackRoleIsNotASourceRole(t *testing.T) {
 	var c v1.Capability = stubPlayer{}
 

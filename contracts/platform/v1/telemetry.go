@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// The module observability surface (ADR 0059).
+// The module observability surface (sdk#5).
 //
 // A module is an anti-corruption layer against a system it does not control,
 // which makes it the code most likely to meet a shape nobody predicted — and
@@ -24,7 +24,7 @@ import (
 // to use internally.
 //
 // **This file names no OpenTelemetry type, and a test enforces that.** The
-// implementation underneath is OTel (ADR 0128) and lives next door in
+// implementation underneath is OTel (sdk#8) and lives next door in
 // `telemetry_otel.go`; what a module compiles against is this, so the thing
 // behind it can be replaced without breaking a published contract. The SDK's
 // zero-dependency rule ended with that record and was replaced by a narrower
@@ -154,7 +154,7 @@ func dropValue(value any) any {
 
 // Unit is the measurement unit of a Measure instrument.
 //
-// **It is a closed vocabulary, and that is deliberate** (ADR 0015's test: the
+// **It is a closed vocabulary, and that is deliberate** (platform#11's test: the
 // Platform branches on it). A unit is what lets a reader label an axis and a
 // backend convert between scales, so a free-form string here would produce
 // `ms`, `millis`, `milliseconds` and `Ms` across four modules describing the

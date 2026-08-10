@@ -2,7 +2,7 @@ package v1
 
 import "time"
 
-// Playback state (ADR 0046): where a viewer stopped, what they finished, and
+// Playback state (platform#26): where a viewer stopped, what they finished, and
 // what they should be offered next.
 //
 // It is the one genuinely per-user thing in the content model. Content, its

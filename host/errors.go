@@ -13,7 +13,7 @@ import (
 // it.
 //
 // The Platform's error categories live in `internal/platform/contracts` and are
-// deliberately not published in the SDK (ADR 0016: a capability calls
+// deliberately not published in the SDK (platform#12: a capability calls
 // application services, and the categories are the Platform's own vocabulary).
 // This package compiles against the SDK, so **it cannot read a category off an
 // error** — it only ever sees `error`.

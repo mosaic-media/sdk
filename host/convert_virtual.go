@@ -5,7 +5,7 @@ import (
 	v1 "github.com/mosaic-media/sdk/contracts/platform/v1"
 )
 
-// Conversions for the virtual content plane (ADR 0028) — the transient
+// Conversions for the virtual content plane (platform#18) — the transient
 // projections the read roles return, which are never object-graph nodes.
 //
 // SearchResult, CatalogItem and RelatedItem are identical in shape and are

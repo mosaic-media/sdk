@@ -12,7 +12,7 @@ import (
 //
 // Every method here forwards the Caller the module presented. It does not
 // validate it: the Platform's own service authenticates and authorises on every
-// call (ADR 0017), and the invocation-handle table is what makes a retained
+// call (platform#13), and the invocation-handle table is what makes a retained
 // Caller stop resolving. Re-checking here would duplicate a gate that already
 // exists and would suggest this layer is the one enforcing it.
 type contentServer struct {

@@ -16,7 +16,7 @@
 # this directory does not descend into a nested module, so a gate that ran only
 # here would report green while never compiling the harness at all — the exact
 # shape of failure this container exists to prevent. It is nested precisely so
-# the parent's dependency graph can stay empty (ADR 0064), and `host` carries
+# the parent's dependency graph can stay empty (platform#39), and `host` carries
 # the test that asserts it still is.
 #
 # For a shell in the same environment:

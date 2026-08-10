@@ -4,7 +4,7 @@ import "context"
 
 // ContentService is the Platform's content application surface — everything a
 // capability does to the object graph, and the interface it is handed rather
-// than a concrete Platform type (ADR 0016). The Platform's application service
+// than a concrete Platform type (platform#12). The Platform's application service
 // implements it; a capability holds it.
 //
 // Every method authenticates the command's Caller, authorises it and — for
@@ -39,7 +39,7 @@ type ContentService interface {
 	// already stored.
 	ListContentParts(ctx context.Context, query ListContentPartsQuery) (ListContentPartsResult, error)
 
-	// Playback state (ADR 0046). These are the first per-user methods on this
+	// Playback state (platform#26). These are the first per-user methods on this
 	// surface: everything above operates on an install-global graph, and a
 	// position belongs to a person. A consumer records progress as its invoking
 	// user, so a module can never write another user's position.

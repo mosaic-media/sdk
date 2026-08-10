@@ -42,7 +42,7 @@ type manifestDoc struct {
 //
 // Everything else the author wrote stays exactly as it was — the plain Go
 // [v1.Capability], its provider roles, its tests with no transport at all. That
-// property is what ADR 0064 is arranged around, and it is why moving a module
+// property is what platform#39 is arranged around, and it is why moving a module
 // between tiers is a build change rather than a rewrite.
 //
 // Serve does not return in normal operation. go-plugin writes the handshake to
@@ -60,7 +60,7 @@ func Serve(capability v1.Capability) {
 	}
 
 	// Route all of this process's egress through the Platform's proxy before
-	// serving, so a module's first outbound call is already covered (ADR 0064).
+	// serving, so a module's first outbound call is already covered (platform#39).
 	// Modules build their HTTP clients lazily, at invocation time, well after
 	// this runs.
 	configureEgressProxy()
@@ -71,7 +71,7 @@ func Serve(capability v1.Capability) {
 
 		// gRPC rather than net/rpc. It is heavier, and it keeps the door open
 		// to a module written in a language other than Go, which net/rpc would
-		// close permanently (ADR 0077).
+		// close permanently (sdk#7).
 		GRPCServer: goplugin.DefaultGRPCServer,
 	})
 }

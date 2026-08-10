@@ -59,7 +59,7 @@ func (s *capabilityServer) GetManifest(_ context.Context, _ *modulev1.ManifestRe
 }
 
 // Import is the one write verb, and the only method whose implementation is
-// handed the Platform's ContentService: a read role never writes (ADR 0027), so
+// handed the Platform's ContentService: a read role never writes (sdk#2), so
 // none of the others take one.
 func (s *capabilityServer) Import(ctx context.Context, req *modulev1.ImportRequest) (*modulev1.ImportResponse, error) {
 	content, telemetry, err := s.platform()
@@ -68,7 +68,7 @@ func (s *capabilityServer) Import(ctx context.Context, req *modulev1.ImportReque
 	}
 
 	// The module reaches Telemetry ambiently, off the context the Platform
-	// handed it (ADR 0059) — so the context carries it here exactly as it would
+	// handed it (sdk#5) — so the context carries it here exactly as it would
 	// in process.
 	ctx = v1.WithTelemetry(ctx, telemetry)
 

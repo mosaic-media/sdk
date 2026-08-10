@@ -14,7 +14,7 @@ import (
 
 // These tests run the real wire: a real gRPC connection, real protobuf
 // serialization, and go-plugin's real broker for the callback direction. What
-// they do not do is spawn a process — that is the probe module's job (ADR 0064's
+// they do not do is spawn a process — that is the probe module's job (platform#39's
 // build order puts it after this).
 //
 // The distinction matters when reading a green result here: this proves the
@@ -24,7 +24,7 @@ import (
 // ─── Test doubles ───────────────────────────────────────────────────────────
 
 // stubCapability is a module. It fills one read role, which is deliberate:
-// ADR 0064's step 1 is "a trivial in-repo module implementing one role", and a
+// platform#39's step 1 is "a trivial in-repo module implementing one role", and a
 // module that filled everything would not exercise the not-implemented path.
 type stubCapability struct {
 	manifest v1.Manifest
@@ -179,7 +179,7 @@ func TestManifestCrossesTheBoundary(t *testing.T) {
 }
 
 // The registry holds a v1.Capability and cannot tell a proxy from a local
-// struct — the property ADR 0064 is arranged around.
+// struct — the property platform#39 is arranged around.
 func TestProxySatisfiesTheCapabilityInterface(t *testing.T) {
 	c := connect(t, &stubCapability{manifest: v1.Manifest{ID: "stub"}}, &stubContent{}, nil)
 	if _, ok := c.(v1.Capability); !ok {
@@ -264,7 +264,7 @@ func TestSettingsCrossUninterpreted(t *testing.T) {
 	}
 	c := connect(t, impl, &stubContent{}, nil)
 
-	// ADR 0021 stores module settings as opaque JSON, and ADR 0064 notes this
+	// platform#17 stores module settings as opaque JSON, and platform#39 notes this
 	// crossing unchanged is a small vindication of that.
 	want := `{"addons":["https://example.invalid/manifest.json"],"nested":{"n":1}}`
 	if _, err := c.Import(context.Background(), nil, v1.ImportRequest{

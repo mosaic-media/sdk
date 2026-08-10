@@ -9,7 +9,7 @@ import (
 
 // Conversions between the SDK's Go types and the wire.
 //
-// This file is the price of ADR 0064's central decision: the Go interfaces stay
+// This file is the price of platform#39's central decision: the Go interfaces stay
 // the contract and the proto is an implementation of them, so the two are
 // separate sources of truth that must agree. Nothing enforces the agreement but
 // this file and the round-trip tests beside it.
@@ -22,7 +22,7 @@ import (
 //     happened to share its number.
 //   - Nil messages convert to zero values rather than panicking. proto3 message
 //     fields are pointers and an older peer legitimately omits a field this
-//     build knows about, which ADR 0064's additive-only rule makes normal.
+//     build knows about, which platform#39's additive-only rule makes normal.
 
 // ─── Time and duration ──────────────────────────────────────────────────────
 
@@ -61,7 +61,7 @@ func durationFromWire(n int64) time.Duration {
 // ─── Caller ─────────────────────────────────────────────────────────────────
 
 // The Caller's Session field carries the invocation handle across the boundary
-// (ADR 0064). A module forwards the Caller it was handed and never inspects it,
+// (platform#39). A module forwards the Caller it was handed and never inspects it,
 // so the field's in-process meaning — a session reference — and its
 // across-the-boundary meaning — a handle the Platform can revoke — never have to
 // be distinguished by module code.

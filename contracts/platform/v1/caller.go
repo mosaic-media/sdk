@@ -1,6 +1,6 @@
 package v1
 
-// Caller identifies who a command or query acts as (ADR 0017).
+// Caller identifies who a command or query acts as (platform#13).
 //
 // A capability does not originate authority. The Platform invokes the
 // capability within a context carrying a principal, and the capability

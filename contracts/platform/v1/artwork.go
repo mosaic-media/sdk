@@ -4,7 +4,7 @@ package v1
 // the backdrop behind a hero, the logo used as a title treatment.
 //
 // It is stored on the node at materialisation rather than re-derived from the
-// provider on every read (ADR 0071). That is what lets a list surface such as
+// provider on every read (platform#45). That is what lets a list surface such as
 // the continue-watching rail render from a single node read instead of a
 // metadata round-trip per card, and what makes a node's art something a user can
 // override — a choice possible only for artwork the library owns, not for a
@@ -13,12 +13,12 @@ package v1
 // # The flat slots are the selection; Candidates is what it was selected from
 //
 // The four flat fields hold one URL each and are what a renderer reads. They
-// used to mean "the artwork the provider gave"; since ADR 0074 they mean "the
+// used to mean "the artwork the provider gave"; since platform#47 they mean "the
 // artwork that was *chosen*", resolved once when the node is written.
 // Candidates carries what it was chosen from — every image every source
 // offered, with enough provenance to choose again differently.
 //
-// Keeping both is deliberate and is the whole shape of ADR 0074. A consumer
+// Keeping both is deliberate and is the whole shape of platform#47. A consumer
 // never walks the candidate list to find out what to draw: there is exactly one
 // answer to "what is this node's poster" and it is the field called Poster. The
 // alternative — a list plus a selection index — would make every surface resolve
@@ -48,7 +48,7 @@ type Artwork struct {
 	// Logo is the clearlogo / title-treatment image, rendered as a hero's title.
 	Logo string `json:"logo,omitempty"`
 	// Candidates is every image any source offered for this node, best-first
-	// within each slot (ADR 0074).
+	// within each slot (platform#47).
 	//
 	// **Ordering is a write-time obligation, not a read-time one.** Whoever
 	// assembles the set sorts it, so reading the best candidate for a slot is
@@ -65,7 +65,7 @@ type Artwork struct {
 // depicts. It is the axis a consumer selects on: a hero wants a backdrop, a card
 // wants a poster, and the two are not interchangeable even for the same title.
 //
-// Open text with known values, like the media vocabularies (ADR 0015). A
+// Open text with known values, like the media vocabularies (platform#11). A
 // dedicated artwork source has types Mosaic has never heard of, and carrying an
 // unrecognised one costs nothing while dropping it loses data a later Mosaic
 // could use. A consumer that does not recognise a slot ignores it.
@@ -84,11 +84,11 @@ const (
 	// ArtworkLogo is the clearlogo / title treatment.
 	ArtworkLogo ArtworkSlot = "logo"
 	// ArtworkClearArt is a transparent cut-out treatment of the title's key art,
-	// to lay over a backdrop. Cinemeta could never supply it and ADR 0034
+	// to lay over a backdrop. Cinemeta could never supply it and sdk#3
 	// recorded its absence as a gap waiting on a dedicated artwork source.
 	ArtworkClearArt ArtworkSlot = "clearart"
 	// ArtworkBanner is wide, short title art — a shape neither a poster nor a
-	// backdrop fills. Recorded alongside clearart in ADR 0034's gap.
+	// backdrop fills. Recorded alongside clearart in sdk#3's gap.
 	ArtworkBanner ArtworkSlot = "banner"
 	// ArtworkDisc is disc or label art for a physical edition.
 	ArtworkDisc ArtworkSlot = "disc"
@@ -107,7 +107,7 @@ type ArtworkCandidate struct {
 	// URL is where the image lives, at the source's own CDN.
 	//
 	// It is not a Platform artwork-proxy URL. Proxying and signing happen when a
-	// screen is emitted (ADR 0030), and a signed URL stored here would outlive
+	// screen is emitted (platform#20), and a signed URL stored here would outlive
 	// the process-scoped key that signed it — coming back after a restart as a
 	// page that looks right and is broken.
 	URL string `json:"url"`

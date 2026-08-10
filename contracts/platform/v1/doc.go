@@ -1,13 +1,13 @@
 // Package v1 is the Platform's published contract surface — the packages a
 // Module compiles against, and the only Platform code it may import
-// (ADR 0008, ADR 0016).
+// (sdk#1, platform#12).
 //
 // It holds the content models (Node, Part, Relation, SourceBinding and their
 // vocabularies), the command, query and result types of the content
 // application services, the service interface those methods satisfy, and the
-// opaque Caller a capability forwards from its invocation context (ADR 0017).
+// opaque Caller a capability forwards from its invocation context (platform#13).
 //
-// It also holds the module observability surface (telemetry.go, ADR 0059):
+// It also holds the module observability surface (telemetry.go, sdk#5):
 // a Telemetry a module records through, reached ambiently with TelemetryFrom
 // on the context the Platform handed it. The Platform owns the observability
 // plane and implements the interface; a module emits and configures nothing.
@@ -19,7 +19,7 @@
 //
 // This package lives in the standalone SDK module
 // (github.com/mosaic-media/sdk), extracted from the Platform repository
-// so a Module depends on it exactly as any third party would (ADR 0008). The
+// so a Module depends on it exactly as any third party would (sdk#1). The
 // Platform consumes it as an ordinary module dependency; nothing here imports
 // the Platform.
 package v1

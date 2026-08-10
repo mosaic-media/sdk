@@ -7,12 +7,12 @@ import (
 )
 
 // EgressProxyEnv is the environment variable the Platform sets to the address of
-// the forward proxy a module's egress must go through (ADR 0064). The Platform
+// the forward proxy a module's egress must go through (platform#39). The Platform
 // sets it when it spawns the module; a module never sets it.
 const EgressProxyEnv = "MOSAIC_EGRESS_PROXY"
 
 // configureEgressProxy wires the process's default HTTP transport through the
-// Platform's egress proxy, and is why ADR 0064 can call sdk/host's client
+// Platform's egress proxy, and is why platform#39 can call sdk/host's client
 // "pre-wired to the proxy" rather than merely env-configured.
 //
 // The standard HTTP_PROXY/HTTPS_PROXY variables are not enough on their own, and
@@ -30,7 +30,7 @@ const EgressProxyEnv = "MOSAIC_EGRESS_PROXY"
 // http.DefaultTransport at request time — so mutating the default is what covers
 // a module that never thought about the proxy at all. A module that builds a
 // fully custom Transport with an explicit nil Proxy can still bypass this; that
-// residual gap is what OS-level network denial (ADR 0064's layer 3) closes, and
+// residual gap is what OS-level network denial (platform#39's layer 3) closes, and
 // this does not claim to.
 func configureEgressProxy() {
 	addr := os.Getenv(EgressProxyEnv)

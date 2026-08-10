@@ -20,7 +20,7 @@ type SearchContentQuery struct {
 	// # Why containment, and not a typed filter
 	//
 	// A node's Attributes are module-owned opaque JSON: the Platform stores them
-	// and never interprets them (ADR 0013 assigns their correctness to the
+	// and never interprets them (platform#9 assigns their correctness to the
 	// writing capability). A typed filter would require the Platform to learn
 	// what a module put there, which is the coupling the whole arrangement
 	// exists to avoid. Containment is the one question that can be asked without
@@ -47,7 +47,7 @@ type SearchContentQuery struct {
 	//
 	// **A module can see what another module wrote.** That is deliberate and
 	// matches the rest of the read surface — providers are resolvable across
-	// modules by design (ADR 0027) — but it means a module should treat its
+	// modules by design (sdk#2) — but it means a module should treat its
 	// attribute keys as a published shape rather than a private one.
 	AttributesContain []byte
 	// Genres narrows to nodes carrying *every* genre listed. Empty means no
@@ -61,7 +61,7 @@ type SearchContentQuery struct {
 	//
 	// Matching is on the stored strings, which are the source's own words
 	// (Node.Genres). The Platform canonicalises their *form* the way it does
-	// every open vocabulary (ADR 0015) and does not reconcile their meaning, so
+	// every open vocabulary (platform#11) and does not reconcile their meaning, so
 	// "Sci-Fi" and "Science Fiction" are two genres here because they are two
 	// genres in the sources.
 	Genres []string
@@ -86,14 +86,14 @@ type FindContentByExternalIDQuery struct {
 
 // FindContentByExternalIDResult carries the matches. It is a list because an
 // anime and its source manga can share a provider reference and remain two
-// Works (ADR 0013).
+// Works (platform#9).
 type FindContentByExternalIDResult struct {
 	Nodes []Node
 }
 
 // GetContentNodeQuery reads a single node, optionally with its direct
 // children — one level, not a subtree, since variable depth means a caller
-// descends deliberately (ADR 0013).
+// descends deliberately (platform#9).
 type GetContentNodeQuery struct {
 	Caller       Caller
 	NodeID       NodeID
@@ -111,7 +111,7 @@ type GetContentNodeResult struct {
 //
 // It closes a hole the surface has carried since the content model landed:
 // AttachContentPart could write a Part and nothing could read one back, so a
-// capability could not see what it had itself created. ADR 0045 named it while
+// capability could not see what it had itself created. platform#25 named it while
 // building the first consumer; this is what finally needed it — a re-import has
 // to know which releases are already stored before it can add the ones that are
 // not.

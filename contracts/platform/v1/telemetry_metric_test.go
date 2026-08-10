@@ -106,7 +106,7 @@ func TestMeasureCarriesItsUnit(t *testing.T) {
 	}
 }
 
-// **This is the failure ADR 0059 refused to ship**, and the reason it declined
+// **This is the failure sdk#5 refused to ship**, and the reason it declined
 // to publish a counter at all until the Platform could back one: a module author
 // instruments against something that discards, gets no data, and has nothing
 // telling them why.

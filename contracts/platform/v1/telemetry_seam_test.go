@@ -34,7 +34,7 @@ func TestTheModuleFacingSurfaceNamesNoOpenTelemetryType(t *testing.T) {
 		if strings.HasPrefix(path, otelPrefix) {
 			t.Errorf("%s imports %q — the surface a module compiles against must be "+
 				"expressible without OpenTelemetry, so the implementation underneath "+
-				"can be replaced without breaking a published contract (ADR 0128). "+
+				"can be replaced without breaking a published contract (sdk#8). "+
 				"Anything needing an OTel type belongs in %s.",
 				moduleFacingFile, path, hostFacingFile)
 		}

@@ -1,7 +1,7 @@
 # Claude Instructions — Mosaic SDK
 
 This repository is the **published contract surface** between the Platform and
-the Modules that extend it (ADR 0008, ADR 0016). It is `github.com/mosaic-media/sdk`,
+the Modules that extend it ([sdk#1](docs/adr/0001-sdk-as-public-contract-language.md), [platform#12](https://github.com/mosaic-media/platform/blob/main/docs/adr/0012-published-contract-surface.md)). It is `github.com/mosaic-media/sdk`,
 consumed as an ordinary tagged dependency with no `replace`.
 
 ## This is hand-written Go. It is not generated, and it is not protobuf.
@@ -34,7 +34,7 @@ generated files here and no build step — `go build ./...` is the whole thing.
 
 - **This SDK names no implementation and depends on nothing.** `go.mod` is a
   module line and a Go version — no require block at all
-  ([ADR 0135](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0135-the-sdk-carries-no-implementation.md)).
+  ([sdk#10](docs/adr/0010-the-sdk-carries-no-implementation.md)).
   The principle behind it governs every change here: **the SDK says how a module
   interacts with the Platform; the Platform holds the implementations.** The
   surface may be **wide** — a module nobody has imagined must be expressible, and
@@ -43,8 +43,8 @@ generated files here and no build step — `go build ./...` is the whole thing.
   many interfaces and still name no library, which is exactly what the content
   surface already does.
 
-  The rule was "nothing" until ADR 0128 widened it to four OpenTelemetry API
-  modules, and ADR 0135 narrowed it back. Worth knowing why, rather than finding
+  The rule was "nothing" until [sdk#8](docs/adr/0008-opentelemetry-is-the-telemetry-implementation.md) widened it to four OpenTelemetry API
+  modules, and [sdk#10](docs/adr/0010-the-sdk-carries-no-implementation.md) narrowed it back. Worth knowing why, rather than finding
   one of the two old sentences in a git log: **the line was in the wrong place,
   and the library was never the objection.** The module-facing half was always
   clean — `telemetry.go` declares `Telemetry`, `Span`, `Field` and
@@ -62,10 +62,10 @@ generated files here and no build step — `go build ./...` is the whole thing.
   being one.
 
   **OpenTelemetry remains Mosaic's telemetry implementation in every process**
-  (ADR 0128). What reverses is who declares the dependency; a module still writes
+  ([sdk#8](docs/adr/0008-opentelemetry-is-the-telemetry-implementation.md)). What reverses is who declares the dependency; a module still writes
   `v1.TelemetryFrom(ctx).Info(…)` and still never sees OTel.
 
-  **The obvious relocation does not work, and ADR 0135 rejects it on the facts:**
+  **The obvious relocation does not work, and [sdk#10](docs/adr/0010-the-sdk-carries-no-implementation.md) rejects it on the facts:**
   moving the OTel half down into `sdk/host` looks free because no *contract*
   consumer imports that module, but every out-of-process module requires
   `sdk/host` in its own `go.mod` to serve itself — so the dependency lands in a
@@ -78,12 +78,12 @@ generated files here and no build step — `go build ./...` is the whole thing.
   own dependency list is the temptation.
 
   **As this is written the removal has not landed** — `go.mod` still requires the
-  four modules and the test still carries ADR 0128's allowlist. Say so rather
+  four modules and the test still carries [sdk#8](docs/adr/0008-opentelemetry-is-the-telemetry-implementation.md)'s allowlist. Say so rather
   than reading the gap as a second opinion, and do not widen the allowlist while
   it is open.
 - **A facility a module needs is reached declaratively, never as a primitive.**
   The same rule settles the crypto question without a second argument: the
-  Platform's secret facility ([ADR 0134](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0134-the-install-key.md)
+  Platform's secret facility ([platform#81](https://github.com/mosaic-media/platform/blob/main/docs/adr/0081-the-install-key.md)
   and its successor) is reached through a settings field marked secret and sealed
   by the Platform — never through `Seal`/`Open` primitives here, which would
   publish an implementation and hand a module an encryption oracle.
@@ -91,7 +91,7 @@ generated files here and no build step — `go build ./...` is the whole thing.
   capability needs a private Platform import, the contracts are not ready to
   publish — that is the stop point, and it governs any change here.
 - **No storage contracts, no transaction type, no identity or configuration
-  models.** A capability calls application services, never stores (ADR 0012).
+  models.** A capability calls application services, never stores ([platform#8](https://github.com/mosaic-media/platform/blob/main/docs/adr/0008-capabilities-do-not-own-stores.md)).
 - **Apache-2.0**, unlike the Platform's AGPL. This is the permissive surface a
   third party compiles against. Files here carry no SPDX header — match the
   files already present rather than importing the Platform's convention.

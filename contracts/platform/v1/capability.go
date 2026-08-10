@@ -3,8 +3,8 @@ package v1
 import "context"
 
 // Capability is what an optional Module implements so the Platform can invoke
-// it. ADR 0008 always reserved a capability and registration surface for the
-// SDK; ADR 0016 populated only the content services, and this is the first
+// it. sdk#1 always reserved a capability and registration surface for the
+// SDK; platform#12 populated only the content services, and this is the first
 // addition of the capability side.
 //
 // The dependency direction is the whole point: a Module depends only on this
@@ -12,13 +12,13 @@ import "context"
 // The Module never imports the Platform. A Capability sources content from
 // somewhere the Platform does not know about — a provider, an addon, a
 // scanner — and reflects it into the object graph through ContentService,
-// acting as the Caller it is handed (ADR 0017). It owns no schema (ADR 0012):
+// acting as the Caller it is handed (platform#13). It owns no schema (platform#8):
 // everything it does to the graph goes through the published services.
 //
 // Capability is the base every module implements: identity plus the one write
 // verb, Import. The read side — search, catalogs, metadata, streams — is the
 // optional provider roles in provider.go, which a module additionally
-// implements and declares in Manifest.Provides (ADR 0027). The Platform
+// implements and declares in Manifest.Provides (sdk#2). The Platform
 // discovers a module's roles by type-asserting the Capability to each provider
 // interface.
 type Capability interface {
@@ -29,7 +29,7 @@ type Capability interface {
 
 	// Import materialises one virtual content item — named by the request's
 	// Ref, which a read role (search, catalog) produced — into the object graph
-	// through svc, acting as the request's Caller throughout (ADR 0028: import
+	// through svc, acting as the request's Caller throughout (platform#18: import
 	// is the one crossing from the virtual plane to the library). It returns
 	// what it did so the invoker (or a test) can see the shape without
 	// re-reading the graph. Errors carry a Platform error category, since every
@@ -42,11 +42,11 @@ type Capability interface {
 // module system adds to what a module receives (settings now; more as the
 // system matures) without breaking the interface each time.
 type ImportRequest struct {
-	// Caller is the principal the capability acts as (ADR 0017); it forwards
+	// Caller is the principal the capability acts as (platform#13); it forwards
 	// this to every service call.
 	Caller Caller
 	// Ref names the virtual content item to materialise — the handle a read
-	// role produced (ADR 0028). It replaced a free-form query string in v0.4.0:
+	// role produced (platform#18). It replaced a free-form query string in v0.4.0:
 	// import is no longer "parse an id from a string" but "materialise this
 	// result". The module reads Ref.NativeID/NativeType to source the detail.
 	Ref ContentRef
@@ -82,12 +82,12 @@ type Manifest struct {
 	// published one. Optional — a module that says nothing is described by its
 	// capabilities alone.
 	Description string
-	// Provides declares the provider roles this module fills (ADR 0027). The
+	// Provides declares the provider roles this module fills (sdk#2). The
 	// Platform checks at composition that each declared role is backed by the
 	// matching provider interface in provider.go, then resolves providers by
 	// role at runtime. Empty means the module only imports. This is the first
 	// real growth of the manifest shape, and what the media_types registry
-	// (ADR 0015) has waited on.
+	// (platform#11) has waited on.
 	Provides []Role
 }
 

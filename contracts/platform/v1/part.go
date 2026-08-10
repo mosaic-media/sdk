@@ -3,7 +3,7 @@ package v1
 import "time"
 
 // PartRole distinguishes the two reasons an item Node has more than one
-// Part (ADR 0013). Both go through one source-selection path rather than
+// Part (platform#9). Both go through one source-selection path rather than
 // two, which is the point of modelling them the same way.
 type PartRole string
 
@@ -21,7 +21,7 @@ const (
 )
 
 // LocationScheme says whether a Part's bytes sit on a local filesystem or
-// behind a remote provider. ADR 0014 makes both first-class: a library may
+// behind a remote provider. platform#10 makes both first-class: a library may
 // be entirely local, entirely remote, or mixed, and nothing above the Part
 // cares which.
 type LocationScheme string
@@ -34,7 +34,7 @@ const (
 	RemoteLocation LocationScheme = "remote"
 )
 
-// MediaLocation points at bytes. It never contains them: ADR 0014 is
+// MediaLocation points at bytes. It never contains them: platform#10 is
 // explicit that media is linked, never absorbed, and that primary media is
 // never rewritten, re-containered or moved into a content-addressed store.
 // It stays as whatever it already is, wherever the source keeps it, so any
@@ -48,7 +48,7 @@ type MediaLocation struct {
 	Ref string
 }
 
-// Part is what actually gets played, attached to an item Node (ADR 0013).
+// Part is what actually gets played, attached to an item Node (platform#9).
 // It carries technical metadata and a pointer to the bytes.
 type Part struct {
 	ID PartID

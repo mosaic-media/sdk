@@ -9,8 +9,8 @@ import (
 	v1 "github.com/mosaic-media/sdk/contracts/platform/v1"
 )
 
-// The telemetry bridge (ADR 0059). A module records through the SDK's own
-// interface — which is why this crosses a process boundary at all: ADR 0059
+// The telemetry bridge (sdk#5). A module records through the SDK's own
+// interface — which is why this crosses a process boundary at all: sdk#5
 // declared an interface rather than re-exporting OpenTelemetry, so the module
 // calls the same methods over a different transport and its surface is
 // unaffected.

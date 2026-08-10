@@ -6,7 +6,7 @@ import (
 	v1 "github.com/mosaic-media/sdk/contracts/platform/v1"
 )
 
-// TestNormaliseTypeName covers the collapse ADR 0015 relies on: the open
+// TestNormaliseTypeName covers the collapse platform#11 relies on: the open
 // vocabularies are unconstrained text, so spelling variants of one concept
 // must land on one value or a library silently splits in two.
 func TestNormaliseTypeName(t *testing.T) {

@@ -11,7 +11,7 @@ import (
 // by calling back to the Platform. A module's own code holds it as the
 // interface and cannot tell it from the in-process application service.
 //
-// This is the chatty direction ADR 0064 leaves open: a tree import makes one
+// This is the chatty direction platform#39 leaves open: a tree import makes one
 // call per node, each now a round trip over the socket. That record says the
 // cost must be measured against a real import before the protocol is fixed, and
 // allows the service shape to grow coarser, batched verbs if it warrants them.
