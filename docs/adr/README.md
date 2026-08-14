@@ -21,6 +21,12 @@ A record is cited from another repository as `sdk#N`, written as a link to the f
 
 Decisions held elsewhere that these records cite. They bind work here and are not repeated — follow the link.
 
+**`architecture`**
+
+- [architecture#1](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0001-licensing.md)
+- [architecture#2](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0002-repository-naming-convention.md)
+- [architecture#3](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0003-two-module-tiers.md)
+
 **`contracts`**
 
 - [contracts#3](https://github.com/mosaic-media/contracts/blob/main/docs/adr/0003-sdui-contract-repository.md)
@@ -33,9 +39,6 @@ Decisions held elsewhere that these records cite. They bind work here and are no
 
 **`platform`**
 
-- [platform#1](https://github.com/mosaic-media/platform/blob/main/docs/adr/0001-transactional-store-extensibility.md)
-- [platform#2](https://github.com/mosaic-media/platform/blob/main/docs/adr/0002-module-storage-and-delivery-model.md)
-- [platform#3](https://github.com/mosaic-media/platform/blob/main/docs/adr/0003-platform-as-execution-kernel.md)
 - [platform#4](https://github.com/mosaic-media/platform/blob/main/docs/adr/0004-static-go-module-composition.md)
 - [platform#11](https://github.com/mosaic-media/platform/blob/main/docs/adr/0011-open-and-closed-vocabularies.md)
 - [platform#12](https://github.com/mosaic-media/platform/blob/main/docs/adr/0012-published-contract-surface.md)
