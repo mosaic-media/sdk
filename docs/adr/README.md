@@ -64,4 +64,4 @@ Decisions held elsewhere that these records cite. They bind work here and are no
 **`supervisor`**
 
 - [supervisor#5](https://github.com/mosaic-media/supervisor/blob/main/docs/adr/0005-the-supervisor-observes-independently.md)
-- [supervisor#11](https://github.com/mosaic-media/supervisor/blob/main/docs/adr/0011-the-monitored-version-is-the-contract-not-the-artefact.md)
+- [supervisor#12](https://github.com/mosaic-media/supervisor/blob/main/docs/adr/0012-upgrade-automation-is-staged-against-the-contract-version.md)

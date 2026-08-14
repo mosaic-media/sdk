@@ -96,8 +96,7 @@ SDK's authoring surface stays, and gains the OTel API as its first dependency.**
   a file exporter; retention, partitioning and the expert-mode reader are
   unchanged, because they are about storage and access rather than about record
   production.
-- **The Supervisor takes the SDK with a file exporter and no collector.** ADR
-  0060's objection was to *OTLP* — an exporter needing something else to be
+- **The Supervisor takes the SDK with a file exporter and no collector.** [supervisor#5](https://github.com/mosaic-media/supervisor/blob/main/docs/adr/0005-the-supervisor-observes-independently.md)'s objection was to *OTLP* — an exporter needing something else to be
   alive — and it was right. A file exporter needs nothing. OTLP becomes a thing
   an operator may configure, off by default, and never a thing the Supervisor
   requires in order to record that a child would not start.
@@ -145,7 +144,7 @@ telemetry models in one process, correlated by hand.
 revisit if the adoption goes badly. The cost of waiting is paid in the coin this
 record exists to stop spending: every process added before then hand-writes a
 fourth copy. And Mosaic's own release discipline already absorbs exactly this
-shape of churn — [supervisor#11](https://github.com/mosaic-media/supervisor/blob/main/docs/adr/0011-the-monitored-version-is-the-contract-not-the-artefact.md)
+shape of churn — [supervisor#12](https://github.com/mosaic-media/supervisor/blob/main/docs/adr/0012-upgrade-automation-is-staged-against-the-contract-version.md)
 decided two days ago that the contract's *minor* is the breaking component
 before 1.0, so an OTel logs API bump is an SDK minor bump, which is the cadence
 the SDK already has.

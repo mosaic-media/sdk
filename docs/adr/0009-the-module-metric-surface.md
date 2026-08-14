@@ -146,7 +146,7 @@ has nowhere to put one. A synchronous gauge exists in the API and measures
   the *stable* half of OpenTelemetry, unlike the logs API [sdk#8](0008-opentelemetry-is-the-telemetry-implementation.md) had to take
   at `v0.21.0`.
 - **`v1.Telemetry` gained two methods, which breaks every implementer.** Pre-1.0
-  minor, sanctioned by [supervisor#11](https://github.com/mosaic-media/supervisor/blob/main/docs/adr/0011-the-monitored-version-is-the-contract-not-the-artefact.md);
+  minor, sanctioned by [supervisor#12](https://github.com/mosaic-media/supervisor/blob/main/docs/adr/0012-upgrade-automation-is-staged-against-the-contract-version.md);
   in practice it broke the Platform's adapter, the harness bridge and three test
   fakes, all fixed in the same change. A third party's own fake breaks on the
   bump, which is what a pre-1.0 minor means.
