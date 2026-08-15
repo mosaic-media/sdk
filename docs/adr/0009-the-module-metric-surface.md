@@ -97,7 +97,7 @@ screen.**
   that can drop, and a snapshot that is the values as of the question rather
   than as of the last flush.
 - **The screen lands with the surface.** A capability with no client path is
-  [owed rather than done](../unreachable-capability.md), and a metric nobody can
+  [owed rather than done](https://github.com/mosaic-media/architecture/blob/main/docs/unreachable-capability.md), and a metric nobody can
   look at is the thing this record exists to avoid. It is composed from SDUI
   that already exists, so it cost no client release and no new definition.
 
