@@ -6,27 +6,28 @@ import (
 	"testing"
 )
 
-// allowedParentDependencies is the whole of what `sdk`'s go.mod may require.
+// allowedParentDependencies is the whole of what the parent sdk module's go.mod
+// may require.
 //
-// **The rule used to be "nothing", and sdk#8 replaced it with this rather
-// than deleting it.** The property being protected was never zero for its own
-// sake — it was that a third party compiles against a contract rather than
-// against the Platform's taste. A vendor-neutral, CNCF-governed API that the
-// third party very likely already has in their build is a different thing from
-// a Mosaic-flavoured one, so the list is an allowlist and not an absence.
+// It is an allowlist, not an assertion that the list is empty (sdk#8). The
+// property being protected was never zero dependencies for its own sake — it is
+// that a third party compiles against a contract rather than against the
+// Platform's taste, and a vendor-neutral, CNCF-governed API the third party very
+// likely already has in their build is a different thing from a Mosaic-flavoured
+// one.
 //
-// Note what is **not** here and cannot be added without a decision:
-// `go.opentelemetry.io/otel/sdk` and anything under it, any exporter, and any
-// collector client. Those are what a *binary* wires (sdk#8), and a module
-// that could reach them could configure the Platform's observability plane from
-// inside it — the ownership sdk#5 placed with the Platform and sdk#8 did
-// not move. Twelve modules come with the OTel SDK against four with the API,
-// and the difference is exactly this boundary.
+// Note what is not here and cannot be added without a decision:
+// go.opentelemetry.io/otel/sdk and anything under it, any exporter, and any
+// collector client. Those are what a binary wires (sdk#8), and a module that
+// could reach them could configure the Platform's observability plane from
+// inside it — the ownership sdk#5 placed with the Platform and sdk#8 did not
+// move. The OTel SDK pulls in a dozen modules against the API's four, and the
+// difference is exactly this boundary.
 //
-// The metric API joined the three in sdk#9, on the same terms: `metric.Meter`
-// is an interface the Platform hands over, and `metric.MeterProvider` — where a
-// view, a reader or an exporter would be configured — is not reachable from
-// anything a module holds.
+// The metric API joined the three in sdk#9, on the same terms: metric.Meter is
+// an interface the Platform hands over, and metric.MeterProvider — where a view,
+// a reader or an exporter would be configured — is not reachable from anything a
+// module holds.
 var allowedParentDependencies = map[string]bool{
 	// The API. `otel` itself carries `attribute` and `codes`.
 	"go.opentelemetry.io/otel":        true,
@@ -40,10 +41,13 @@ var allowedParentDependencies = map[string]bool{
 // TestParentSDKDependenciesAreTheOTelAPIOnly is the executable form of the
 // reason this nested module exists.
 //
-// The property decays silently — a `go get` in the wrong directory is all it
+// The property decays silently — a go get in the wrong directory is all it
 // takes, and nothing else fails. So it is asserted from the one module that
-// would notice, and whose own dependency list is the temptation: platform#39 split
-// the harness out here precisely so gRPC would not land in the contract.
+// would notice, and whose own dependency list is the temptation: platform#39
+// split the harness out here precisely so gRPC would not land in the contract.
+//
+// It reads the parent go.mod as text, so an entry marked indirect is checked
+// like any other; that is why xxhash is on the list above.
 func TestParentSDKDependenciesAreTheOTelAPIOnly(t *testing.T) {
 	data, err := os.ReadFile("../go.mod")
 	if err != nil {

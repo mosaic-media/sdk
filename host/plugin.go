@@ -24,12 +24,12 @@ const PluginName = "capability"
 // on; the usual way to agree is to put the id in the request. That would mean a
 // broker id field on every request that can call back.
 //
-// It is unnecessary here because **the connection is not what scopes
-// authority — the Caller handle is** (platform#39). One long-lived callback
-// connection per module process, with a handle minted and revoked per
-// invocation, gives exactly the property the per-invocation design was reaching
-// for: a retained connection is useless without a live handle, and a handle
-// stops resolving the instant the invocation returns.
+// It is unnecessary here because the connection is not what scopes authority —
+// the Caller handle is (platform#39). One long-lived callback connection per
+// module process, with a handle minted and revoked per invocation, gives
+// exactly the property the per-invocation design was reaching for: a retained
+// connection is useless without a live handle, and a handle stops resolving the
+// instant the invocation returns.
 //
 // There is one broker per plugin connection, so a fixed id cannot collide.
 const callbackBrokerID = 1
@@ -40,7 +40,7 @@ const callbackBrokerID = 1
 // than two — the proto package version tracks it, and go-plugin's
 // ProtocolVersion below carries it on the wire.
 //
-// While the SDK is pre-1.0 the compatibility unit is the *minor* version, which
+// While the SDK is pre-1.0 the compatibility unit is the minor version, which
 // is effectively exact pinning. That is correct rather than unfortunate: Go
 // gives v0.x no compatibility guarantee, and there are no third-party authors
 // yet to inconvenience. Reaching SDK v1.0 is a precondition for a third-party

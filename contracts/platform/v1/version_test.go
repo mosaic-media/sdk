@@ -7,8 +7,8 @@ import (
 )
 
 // TestModuleVersionOfSomethingNotLinked — asking about a module this binary was
-// not built with must not invent an answer. Returning a plausible number for an
-// absent module is exactly the failure mode a hand-maintained constant had.
+// not built with must not invent an answer. A plausible number for an absent
+// module is the failure mode a hand-maintained constant has.
 func TestModuleVersionOfSomethingNotLinked(t *testing.T) {
 	if got := v1.ModuleVersion("github.com/example/not-linked"); got != v1.DevVersion {
 		t.Errorf("ModuleVersion(absent) = %q, want %q", got, v1.DevVersion)

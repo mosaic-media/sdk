@@ -219,7 +219,7 @@ func attributesOf(r log.Record) map[string]string {
 // It embeds embedded.Logger deliberately. The OTel logs API is pre-1.0 and says
 // in its own package documentation that its interfaces may gain methods without
 // a major bump; embedding the `embedded` type is how an implementation chooses
-// *compilation failure* over a runtime panic when that happens. A fake that
+// compilation failure over a runtime panic when that happens. A fake that
 // declared the methods by hand would start panicking in somebody's build
 // instead.
 type recordingLogger struct {

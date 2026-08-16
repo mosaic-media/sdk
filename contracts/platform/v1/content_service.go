@@ -35,8 +35,7 @@ type ContentService interface {
 	// GetContentNode reads one node, optionally with its direct children.
 	GetContentNode(ctx context.Context, query GetContentNodeQuery) (GetContentNodeResult, error)
 	// ListContentParts reads an item's playable parts — the read side of
-	// AttachContentPart, absent until a re-import needed to know what it had
-	// already stored.
+	// AttachContentPart.
 	ListContentParts(ctx context.Context, query ListContentPartsQuery) (ListContentPartsResult, error)
 
 	// Playback state (platform#26). These are the first per-user methods on this

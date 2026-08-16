@@ -15,13 +15,13 @@ import (
 // calls the same methods over a different transport and its surface is
 // unaffected.
 //
-// **One fidelity loss, stated rather than hidden.** [v1.Field]'s Value is `any`;
-// on the wire it is a string, rendered with fmt.Sprint. A sink that would have
-// written 42 as a number writes "42" instead. Carrying a typed oneof would
-// preserve it, and is not worth the schema surface for an observational channel
-// whose fields are already heterogeneous — the SDK's own Duration() helper
-// flattens to a string before it ever reaches here. If a sink ever needs the
-// type, this is the place that dropped it.
+// One fidelity loss: [v1.Field]'s Value is any, and on the wire it is a string
+// rendered with fmt.Sprint, so a sink that would have written 42 as a number
+// writes "42" instead. Carrying a typed oneof would preserve it, and is not
+// worth the schema surface for an observational channel whose fields are
+// already heterogeneous — the SDK's own Duration() helper flattens to a string
+// before it ever reaches here. If a sink ever needs the type, this is the place
+// that dropped it.
 
 func fieldToWire(f v1.Field) *modulev1.Field {
 	return &modulev1.Field{
@@ -161,15 +161,15 @@ func (s *remoteSpan) End() {
 	})
 }
 
-// Count and Measure are fire-and-forget like the log calls, and for the same
-// reason: telemetry must never fail the operation it observes.
+// Count, and Measure below it, are fire-and-forget like the log calls, and for
+// the same reason: telemetry must never fail the operation it observes.
 //
-// **Neither is a no-op, and that is the point of them existing at all.** ADR
-// 0059 declined to publish a counter the Platform could not back, because a
-// module author instrumenting against a silent discard gets no data and no
-// indication why. A bridge that accepted these calls and dropped them would
-// rebuild that failure for exactly the modules that run out of process — the
-// configuration nobody exercises locally.
+// Neither is a no-op, which is the point of them existing at all. sdk#5
+// declined to publish a counter the Platform could not back, because a module
+// author instrumenting against a silent discard gets no data and no indication
+// why. A bridge that accepted these calls and dropped them would rebuild that
+// failure for exactly the modules that run out of process — the configuration
+// nobody exercises locally.
 func (t *telemetryClient) Count(name string, delta int64, attrs ...v1.Field) {
 	//nolint:errcheck // deliberate: see the type comment.
 	_, _ = t.client.Count(context.Background(), &modulev1.CountRequest{

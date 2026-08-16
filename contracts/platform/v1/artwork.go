@@ -12,11 +12,10 @@ package v1
 //
 // # The flat slots are the selection; Candidates is what it was selected from
 //
-// The four flat fields hold one URL each and are what a renderer reads. They
-// used to mean "the artwork the provider gave"; since platform#47 they mean "the
-// artwork that was *chosen*", resolved once when the node is written.
-// Candidates carries what it was chosen from — every image every source
-// offered, with enough provenance to choose again differently.
+// The four flat fields hold one URL each and are what a renderer reads: the
+// artwork that was chosen (platform#47), resolved once when the node is
+// written. Candidates carries what it was chosen from — every image every
+// source offered, with enough provenance to choose again differently.
 //
 // Keeping both is deliberate and is the whole shape of platform#47. A consumer
 // never walks the candidate list to find out what to draw: there is exactly one
@@ -38,7 +37,7 @@ type Artwork struct {
 	Poster string `json:"poster,omitempty"`
 	// Landscape is wide key art: the same title treated as a 16:9 card rather
 	// than a portrait poster. It is distinct from Backdrop — a backdrop is
-	// scenery to sit *behind* a hero, this is a composed card image to sit *in*
+	// scenery to sit behind a hero, this is a composed card image to sit in
 	// one, which is what a resume rail wants. Sources differ on whether they
 	// have it: Cinemeta does not, an addon proxying a real artwork database
 	// does, and it is empty rather than substituted when absent.
@@ -50,7 +49,7 @@ type Artwork struct {
 	// Candidates is every image any source offered for this node, best-first
 	// within each slot (platform#47).
 	//
-	// **Ordering is a write-time obligation, not a read-time one.** Whoever
+	// Ordering is a write-time obligation, not a read-time one: whoever
 	// assembles the set sorts it, so reading the best candidate for a slot is
 	// taking the first one rather than re-running a policy on every render. That
 	// is what keeps selection in one place and off the hot path.
@@ -61,7 +60,7 @@ type Artwork struct {
 	Candidates []ArtworkCandidate `json:"candidates,omitempty"`
 }
 
-// ArtworkSlot names a kind of image — what the picture is *for*, not what it
+// ArtworkSlot names a kind of image — what the picture is for, not what it
 // depicts. It is the axis a consumer selects on: a hero wants a backdrop, a card
 // wants a poster, and the two are not interchangeable even for the same title.
 //
@@ -77,9 +76,9 @@ type ArtworkSlot string
 const (
 	// ArtworkPoster is portrait key art, the image a card shows.
 	ArtworkPoster ArtworkSlot = "poster"
-	// ArtworkLandscape is wide composed key art, to sit *in* a card.
+	// ArtworkLandscape is wide composed key art, to sit in a card.
 	ArtworkLandscape ArtworkSlot = "landscape"
-	// ArtworkBackdrop is scenery to sit *behind* a hero.
+	// ArtworkBackdrop is scenery to sit behind a hero.
 	ArtworkBackdrop ArtworkSlot = "backdrop"
 	// ArtworkLogo is the clearlogo / title treatment.
 	ArtworkLogo ArtworkSlot = "logo"
@@ -118,7 +117,7 @@ type ArtworkCandidate struct {
 	// Language is the ISO 639 code of any text burned into the image, empty when
 	// there is none.
 	//
-	// **Empty means textless, and textless is frequently the best answer** — a
+	// Empty means textless, and textless is frequently the best answer: a
 	// backdrop with a title burned into it is wrong behind a hero that draws its
 	// own clearlogo on top. So an empty Language here is a positive property
 	// rather than missing data, which is the opposite of how most empty fields in
@@ -127,11 +126,11 @@ type ArtworkCandidate struct {
 	// Rank is the source's own ordering of its candidates — vote counts,
 	// popularity, or simply the order it listed them.
 	//
-	// **It is not normalised and must not be compared across sources.** One
+	// It is not normalised and must not be compared across sources. One
 	// source's likes and another's vote average measure different things over
 	// different populations; a blended score would read as authoritative while
 	// being invented, and the store would then persist the invention. Rank orders
-	// candidates *within* a source; choosing between sources is a separate,
+	// candidates within a source; choosing between sources is a separate,
 	// stated preference.
 	Rank float64 `json:"rank,omitempty"`
 }

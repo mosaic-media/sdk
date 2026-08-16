@@ -19,7 +19,7 @@ const EgressProxyEnv = "MOSAIC_EGRESS_PROXY"
 // the gap is exactly the target that matters most. Go's ProxyFromEnvironment
 // hardcodes a bypass for "localhost" and loopback addresses — so a module using
 // an ordinary client would reach 127.0.0.1 (the Platform's own PostgreSQL, say)
-// *directly*, around the proxy and around its deny list. Setting the transport's
+// directly, around the proxy and around its deny list. Setting the transport's
 // Proxy to a function that always returns the proxy URL has no such exception:
 // every request, loopback included, goes through the proxy, where the deny list
 // decides.

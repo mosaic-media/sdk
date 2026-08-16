@@ -8,7 +8,7 @@ import "context"
 // by design, other modules resolve. Each role is a small interface a module
 // implements only if it fills it, and declares in its Manifest.Provides.
 //
-// The read roles return the *virtual* content types below (SearchResult,
+// The read roles return the virtual content types below (SearchResult,
 // CatalogItem, ContentMetadata) — transient projections, never object-graph
 // nodes (platform#18). Only Import (see capability.go) writes nodes, and it does
 // so from a ContentRef a read role produced. Nothing here takes a
@@ -38,25 +38,24 @@ const (
 	// same way a stream location is snapshotted before anything resolves it.
 	RoleSubtitles Role = "subtitles"
 	// RolePlayback is backed by PlaybackProvider (playback.go) — the first
-	// *consumer* role, and the one entry here that is not a source. Every role
+	// consumer role, and the one entry here that is not a source. Every role
 	// above brings content in; this one acts on what materialising created,
 	// resolving a Part to playable bytes (platform#25). It is what platform#24's
 	// affordance gate keys on: with no consumer installed, the library is inert
 	// and the surface is discovery-only.
 	RolePlayback Role = "playback"
-	// RoleArtwork is backed by ArtworkProvider — a source that supplies *only*
+	// RoleArtwork is backed by ArtworkProvider — a source that supplies only
 	// artwork for content something else already identified (sdk#6).
 	//
-	// It is neither a source role nor a consumer role, which is why it is worth
-	// reading twice. Every role above either brings content in or acts on what
-	// materialising created; this one **enriches content that already exists**. A
-	// dedicated artwork database has no titles, no overviews, no search and no
-	// catalogs — there is no query that turns "Blade Runner" into a result, you
-	// must already know which film you mean — so it can answer exactly one
-	// question and none of the others.
+	// It is neither a source role nor a consumer role. Every role above either
+	// brings content in or acts on what materialising created; this one enriches
+	// content that already exists. A dedicated artwork database has no titles, no
+	// overviews, no search and no catalogs — there is no query that turns "Blade
+	// Runner" into a result, you must already know which film you mean — so it
+	// can answer exactly one question and none of the others.
 	//
-	// **It does not satisfy platform#23's metadata requirement, and must not be
-	// used to.** A module that cannot name a film has no business counting
+	// It does not satisfy platform#23's metadata requirement, and must not be
+	// used to. A module that cannot name a film has no business counting
 	// toward the guarantee that Mosaic can name films. That is the specific
 	// mistake this role exists to prevent: declaring RoleMetadata to reach
 	// ContentMetadata's image fields would pass the composition-root check with a
@@ -116,7 +115,7 @@ type SearchResult struct {
 	NodeID NodeID
 }
 
-// Catalog is one collection a CatalogProvider exposes — a *view* the source
+// Catalog is one collection a CatalogProvider exposes — a view the source
 // computes (Popular, Trending), addressed by its native id. It is not persisted
 // and is not a container in the object graph; materialising a catalog copies its
 // items into the library, it does not import the catalog as an object (platform#18).
@@ -132,8 +131,8 @@ type Catalog struct {
 	// values it accepts. Empty means the catalog takes no narrowing, which is
 	// what every provider said before this field existed.
 	//
-	// **The options are declared rather than free text, and that is the whole
-	// design.** A consumer builds its control from this list, so a value it
+	// The options are declared rather than free text, and that is the whole
+	// design: a consumer builds its control from this list, so a value it
 	// sends back is one the source named — the same discipline that stops a
 	// catalog id being mistyped into a library rule that silently matches
 	// nothing. A free-text filter would produce empty pages that are
@@ -150,7 +149,7 @@ type Catalog struct {
 // CatalogFilter is one narrowing a Catalog accepts — a genre, a streaming
 // service, a decade — with the values it accepts.
 //
-// It is a *declaration*, not a query language. The Platform never interprets
+// It is a declaration, not a query language. The Platform never interprets
 // Name or Value: it renders the labels, sends back the value that was chosen,
 // and the module turns that into whatever its source actually wants. That is
 // what keeps a source's query vocabulary inside its anti-corruption layer while
@@ -161,7 +160,7 @@ type CatalogFilter struct {
 	Name string
 	// Label is what a user reads above the control ("Genre"). Sources whose
 	// parameter names are not presentable — and there are some; one popular
-	// catalogue carries a *year* under a parameter called "genre" — are why
+	// catalogue carries a year under a parameter called "genre" — are why
 	// this is carried separately rather than derived from Name.
 	Label string
 	// Options are the values the filter accepts, in the order they should be
@@ -204,13 +203,12 @@ type Person struct {
 	// Photo is a headshot URL, empty when the source has none. Sources differ
 	// sharply here: an addon carrying only names is common, and one proxying a
 	// real database supplies both a character name and an image. Carrying it is
-	// what lets a consumer render a cast rail rather than a list of names —
-	// the field was absent, so a source that had photos had nowhere to put them.
+	// what lets a consumer render a cast rail rather than a list of names.
 	Photo string
 }
 
 // EpisodePreview is one episode in a series' descriptive preview (sdk#3) —
-// what a detail screen shows so a user can read the episode list *before*
+// what a detail screen shows so a user can read the episode list before
 // deciding to add the series, including for a virtual series that has no
 // materialised tree. It is a read-only projection, never persisted and never the
 // materialised Node: Import still builds the tree from the source's own
@@ -228,14 +226,14 @@ type EpisodePreview struct {
 	Released string
 	// RuntimeMinutes is how long this episode runs, 0 when the source does not
 	// say. Minutes rather than ContentMetadata.Runtime's display string, because
-	// a source states a *per-episode* runtime as a number and a consumer showing
+	// a source states a per-episode runtime as a number and a consumer showing
 	// a list of them needs them to read alike — "51 min" beside "0:46" is the
 	// series-level field's problem, not one worth reproducing per row.
 	RuntimeMinutes int
 }
 
 // RelatedItem is one title related to the one being described — a franchise
-// sibling or a recommendation. It is a *virtual* item like a search result: it
+// sibling or a recommendation. It is a virtual item like a search result: it
 // carries a Ref so a consumer can open or materialise it, and the Platform fills
 // InLibrary and NodeID when it unions the list against the library (platform#18).
 //
@@ -259,7 +257,7 @@ type RelatedItem struct {
 // other Avatar films" ([sdk#3](0003-rich-metadata-preview.md) recorded its absence as a gap Cinemeta
 // could not fill and a TMDB-class source could).
 //
-// It is a *descriptive projection*, not the object graph's collection. The graph
+// It is a descriptive projection, not the object graph's collection. The graph
 // expresses membership as a RelationCollectionMember edge between Works, written
 // by Import; this is what a detail screen renders for a title whether or not
 // anything has been materialised, which is the case the edge cannot serve — an
@@ -313,7 +311,7 @@ type WatchOffer struct {
 	Type WatchOfferType
 }
 
-// WatchAvailability is where a title can be watched **outside Mosaic**, in one
+// WatchAvailability is where a title can be watched outside Mosaic, in one
 // region.
 //
 // # This is not a source and must never be rendered as one
@@ -329,7 +327,7 @@ type WatchOffer struct {
 //
 // Availability differs entirely by country, so a value describes exactly one
 // Region and a source asked about the wrong one answers nothing. Empty Offers
-// means "the source knows of none *here*", which is not the same as the title
+// means "the source knows of none here", which is not the same as the title
 // being unavailable — coverage varies by region and by how recently the source
 // last looked.
 type WatchAvailability struct {
@@ -370,12 +368,12 @@ type Trailer struct {
 
 // ContentMetadata is the descriptive detail a MetadataProvider resolves for a
 // ContentRef (the `meta` resource) — used to enrich an existing node, to back a
-// detail screen (for a virtual item and, re-derived, an in-library one — ADR
-// 0034), and as the detail Import draws on when it materialises. It is the
-// *descriptive* surface: the flat fields plus, for a series, a read-only episode
-// *preview*. It is still not the materialised tree — a work's children are built
-// inside Import where the source's structure is known — but it is no longer
-// artificially thin (sdk#3 refines sdk#2's "flat enrichment DTO").
+// detail screen (for a virtual item and, re-derived, an in-library one —
+// sdk#3), and as the detail Import draws on when it materialises. It is the
+// descriptive surface: the flat fields plus, for a series, a read-only episode
+// preview. It is not the materialised tree — a work's children are built inside
+// Import where the source's structure is known (sdk#3 refines sdk#2's "flat
+// enrichment DTO").
 type ContentMetadata struct {
 	Ref      ContentRef
 	Title    string
@@ -427,7 +425,7 @@ type ContentMetadata struct {
 	// is the common case; a source that has them supplies a site and a key rather
 	// than a URL.
 	Trailers []Trailer
-	// Watch is where this title can be watched **outside Mosaic**, for one
+	// Watch is where this title can be watched outside Mosaic, for one
 	// region. Nil when the source has no such data or was not told which region
 	// to answer for.
 	//
@@ -468,16 +466,15 @@ type StreamLink struct {
 	// be moving values across, not translating them.
 	//
 	// A module already knows all three — it parses them at its own boundary
-	// ([module-stremio-addons#2](0002-modules-as-anti-corruption-layers.md)) — and until now had nowhere to put them, so the parse
-	// was narrowed to Quality, SizeBytes and Seeders on the way out and every
-	// candidate arrived saying less than its source had said. An empty field is
+	// ([module-stremio-addons#2](0002-modules-as-anti-corruption-layers.md)) — so fill them rather than narrowing the
+	// parse to Quality, SizeBytes and Seeders on the way out. An empty field is
 	// not neutral here: the same fields left empty on a Part once had ten
 	// gigabytes of Matroska relayed to a browser that could not decode it.
 	//
-	// **Best-effort, and a guess rather than a measurement.** These come from
+	// Best-effort, and a guess rather than a measurement: these come from
 	// release text, which lies, and no parse can see inside a file. What a
 	// release actually contains is settled by probing the bytes before it plays
-	// ([platform#29](0029-probing-and-the-per-stream-playback-decision.md)); what these do is make a candidate list *rankable*
+	// ([platform#29](0029-probing-and-the-per-stream-playback-decision.md)); what these do is make a candidate list rankable
 	// before anything has been fetched. A source that does not report one
 	// leaves it empty, like every other descriptive field here.
 	//
@@ -492,21 +489,18 @@ type StreamLink struct {
 	// its dynamic range. Like the three above they are named and typed exactly
 	// as `Part`'s, so a consumer moves them across rather than translating.
 	//
-	// **They are the two remaining inputs a consumer needs to avoid transcoding
-	// at all**, which is the outcome worth the most. Dimensions decide whether a
+	// They are the two remaining inputs a consumer needs to avoid transcoding at
+	// all, which is the outcome worth the most. Dimensions decide whether a
 	// candidate is larger than a client can display, and HDRFormat decides
 	// whether it needs tone-mapping — the single most expensive thing a Platform
-	// can do with a release, and until now invisible to any ranking, so a source
-	// offering both an HDR and an SDR cut of the same title could not be told to
-	// prefer the one that plays untouched.
+	// can do with a release, and what lets a source offering both an HDR and an
+	// SDR cut of the same title be told to prefer the one that plays untouched.
 	//
-	// A module already works the dimensions out: both stream providers derive
-	// them from the resolution label they parse and discarded them here, because
-	// `Quality` was the only place to put a resolution and it is a display
-	// string. `Quality` stays what it is — the label a source showed — and these
-	// carry the numbers a decision is made on.
+	// A module already works the dimensions out, deriving them from the
+	// resolution label it parses. Quality stays what it is — the display label a
+	// source showed — and these carry the numbers a decision is made on.
 	//
-	// **Best-effort and nominal, like everything else here.** "2160p" means
+	// Best-effort and nominal, like everything else here: "2160p" means
 	// 3840×2160 whatever the release's real aspect, and release text names HDR
 	// far less reliably than it names resolution. The bytes settle it at probe
 	// time ([platform#29](0029-probing-and-the-per-stream-playback-decision.md)); what these do is let a candidate list be ranked
@@ -521,8 +515,8 @@ type StreamLink struct {
 	HDRFormat string
 }
 
-// Subtitle is one subtitle track a SubtitlesProvider resolves for an item (ADR
-// 0037). It is a source projection like a stream location — the Platform does
+// Subtitle is one subtitle track a SubtitlesProvider resolves for an item
+// (module-stremio-addons#1). It is a source projection like a stream location — the Platform does
 // not fetch or store the file; a player consumes it.
 type Subtitle struct {
 	// Language is the track's language as the source labels it (an ISO 639 code
@@ -556,12 +550,9 @@ type SubtitlesRequest struct {
 	//
 	// They are here for StreamRequest's reason ([platform#46](0046-stream-resolution-is-decoupled-from-metadata-provenance.md)) rather than a
 	// new one. A subtitles provider is asked about content it did not source,
-	// so the Ref carries a *shared* external identity and no native id, and a
-	// provider whose episode addressing is derived composes it from these. The
-	// two requests were the same shape until now only by accident: streams grew
-	// the coordinates when the enrichment pass started asking about foreign
-	// content, and subtitles did not, because nothing consumed subtitles yet. A
-	// provider could therefore answer for a film and nothing else.
+	// so the Ref carries a shared external identity and no native id, and a
+	// provider whose episode addressing is derived composes it from these.
+	// Without them a provider could answer for a film and nothing else.
 	//
 	// A provider handed its own native id ignores these and uses the Ref,
 	// exactly as before — so a provider written before this field existed keeps
@@ -579,7 +570,7 @@ type SubtitlesResponse struct {
 // ExternalIdentity is one shared identifier for a piece of content — a scheme
 // and the id under it ("imdb"/"tt0083658", "tvdb"/"73739").
 //
-// It is the *neutral* addressing a provider is handed when it did not source the
+// It is the neutral addressing a provider is handed when it did not source the
 // content it is being asked about (platform#46, sdk#6). A native id is the
 // producing module's own business and means nothing to anyone else; a shared
 // identity is the one thing two modules that have never heard of each other can
@@ -598,7 +589,7 @@ type ExternalIdentity struct {
 // the Platform runs it as a best-effort enrichment pass over a materialised work
 // (sdk#6), the same shape platform#46 established for stream providers. A
 // provider that recognises none of the identities it was handed returns an empty
-// response and **no error** — being asked about content it does not know is
+// response and no error — being asked about content it does not know is
 // normal, not a failure, and an error there would make an artwork source being
 // down lose a user the work they just added.
 type ArtworkProvider interface {
@@ -608,7 +599,7 @@ type ArtworkProvider interface {
 // ArtworkRequest names the content to find artwork for by its shared external
 // identities, rather than by a ContentRef.
 //
-// **The whole identity set is handed over at once, not one at a time**, and that
+// The whole identity set is handed over at once, not one at a time, and that
 // differs from how StreamRequest is invoked. Which identifier a source prefers
 // is the source's business: a real artwork database keys films by one scheme and
 // television by another, and letting the module pick from what is available
@@ -739,12 +730,10 @@ type CatalogItemsRequest struct {
 	// what every caller sent before this field existed, so a provider that
 	// ignores it behaves exactly as it did.
 	//
-	// **A provider must treat an unrecognised name or value as a request it
-	// cannot serve**, not as one to ignore. Returning the unfiltered page for a
+	// A provider must treat an unrecognised name or value as a request it
+	// cannot serve, not as one to ignore. Returning the unfiltered page for a
 	// filter it did not understand answers a question nobody asked, and the
-	// answer looks right — the same failure as a group that says "on Netflix"
-	// about a title that left in March. Declining is visible; quietly widening
-	// is not.
+	// answer looks right. Declining is visible; quietly widening is not.
 	Filters map[string]string
 }
 
@@ -760,17 +749,16 @@ type CatalogItemsResponse struct {
 	// not exist. The provider usually knows for free — an upstream that reports
 	// a total, or a request for one more item than it returns.
 	//
-	// **False means "this is the last page", and that is what a provider
-	// predating this field says by saying nothing.** The zero value is therefore
-	// the old behaviour exactly: the Platform pages nothing, as it did before.
-	// A provider that has more to give opts in by setting it, and nothing has to
-	// be rewritten to keep working.
+	// False means "this is the last page", which is what a provider predating
+	// this field says by saying nothing: the zero value is the old behaviour
+	// exactly, so the Platform pages nothing. A provider that has more to give
+	// opts in by setting it, and nothing has to be rewritten to keep working.
 	//
-	// **There are two grades of true, and a provider should know which it is
-	// making.** An upstream that reports a total supports the exact statement.
+	// There are two grades of true, and a provider should know which it is
+	// making. An upstream that reports a total supports the exact statement.
 	// An upstream that pages by offset and reports no total supports only "this
 	// page came back full, so there is probably another" — which is the
-	// inference this field exists to keep *out of the Platform*, and which is
+	// inference this field exists to keep out of the Platform, and which is
 	// nonetheless the provider's to make, because only the provider knows its
 	// page size. Its cost is bounded and visible: a final page that happens to
 	// be exactly full asks for one more that comes back empty, and a consumer
@@ -784,9 +772,9 @@ type CatalogItemsResponse struct {
 //
 // It is called in two situations that look the same and are not. In the first,
 // the module itself materialised the item and the Ref is its own — the case
-// since sdk#2. In the second, **another module sourced the metadata and this
-// provider is being asked to supply the streams for it** (platform#46): the Ref
-// then carries a *shared* external identity (`imdb`, `tvdb`) with no native id
+// since sdk#2. In the second, another module sourced the metadata and this
+// provider is being asked to supply the streams for it (platform#46): the Ref
+// then carries a shared external identity (`imdb`, `tvdb`) with no native id
 // at all, and the provider derives its own addressing from that plus the
 // request's Season and Episode.
 //
@@ -808,7 +796,7 @@ type StreamRequest struct {
 	// season 0 being the specials a source may or may not have.
 	//
 	// They exist because a stream provider is now asked about content it did not
-	// source ([platform#46](0046-stream-resolution-is-decoupled-from-metadata-provenance.md)), and in that case the Ref carries a *shared*
+	// source ([platform#46](0046-stream-resolution-is-decoupled-from-metadata-provenance.md)), and in that case the Ref carries a shared
 	// external identity rather than the provider's own id. A provider whose
 	// episode addressing is derived — "the series' id, a colon, the season, a
 	// colon, the episode" is one real example — composes it from these, because

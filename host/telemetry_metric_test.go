@@ -12,12 +12,12 @@ import (
 // The metric calls have to survive the round trip through the harness, and this
 // is the test that says so.
 //
-// **The failure it guards against is invisible in every other configuration.**
-// Three of Mosaic's modules run out of process (sdk#7) and the rest run in
-// it, so a bridge that accepted a Count and dropped it would work perfectly in
-// development, in every in-process test, and for three of six modules in
-// production. It would also be the exact thing sdk#5 refused to publish — a
-// counter that discards silently — rebuilt by omission rather than by decision.
+// The failure it guards against is invisible in every other configuration: a
+// bridge that accepted a Count and dropped it would work perfectly in
+// development, in every in-process test, and for every module that is not
+// served out of process (sdk#7). It would also be the exact thing sdk#5 refused
+// to publish — a counter that discards silently — rebuilt by omission rather
+// than by decision.
 func TestMetricCallsCrossTheHarness(t *testing.T) {
 	impl := &recordingTelemetry{}
 	server := &telemetryServer{impl: impl}

@@ -7,7 +7,7 @@ import (
 )
 
 // configureEgressProxy forces the default transport through the proxy for
-// *every* host, including loopback — which is the case standard HTTP_PROXY
+// every host, including loopback — which is the case standard HTTP_PROXY
 // handling deliberately excludes and the one that matters most.
 func TestForcedProxyCoversLoopback(t *testing.T) {
 	original, ok := http.DefaultTransport.(*http.Transport)

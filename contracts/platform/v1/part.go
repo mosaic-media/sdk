@@ -9,7 +9,7 @@ type PartRole string
 
 const (
 	// PartEdition is a complete rendering of the item — a theatrical cut, a
-	// director's cut, a remaster. An edition is deliberately *not* a new
+	// director's cut, a remaster. An edition is deliberately not a new
 	// Node: Blade Runner 2049 is one Item however many cuts exist, because
 	// the cut is a property of which bytes play. An item with a single
 	// unremarkable file uses this role with an empty EditionLabel.

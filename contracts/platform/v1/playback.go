@@ -2,14 +2,14 @@ package v1
 
 import "context"
 
-// The consumer surface (platform#25). Every role in provider.go is a *source*
+// The consumer surface (platform#25). Every role in provider.go is a source
 // role: it brings content in and populates the virtual plane. This is the first
 // role on the other side — one that acts on the materialised library rather
 // than producing virtual results (platform#24's consumer capability, made
 // concrete).
 //
 // The asymmetry that shapes it: a source role exchanges DTOs, but a consumer
-// produces *bytes*, and bytes need a transport the SDK does not have and should
+// produces bytes, and bytes need a transport the SDK does not have and should
 // not grow (platform#3 — the Platform owns transports; platform#15 — a module
 // contributing a route would break the SDK-only boundary). So a provider
 // resolves and never serves: it says where the bytes are, or undertakes to

@@ -76,10 +76,10 @@ func Serve(capability v1.Capability) {
 	})
 }
 
-// emitManifestIfAsked prints the manifest and reports true when ManifestFlag is
-// present, so Serve returns instead of serving. It exits the process rather than
-// only returning, so a module whose main does more after Serve still stops here
-// — the flag means "tell me what you are and stop", not "and then run".
+// emitManifestIfAsked prints the manifest and exits the process when
+// ManifestFlag is present, and reports false otherwise. It exits rather than
+// returning so a module whose main does more after Serve still stops here — the
+// flag means "tell me what you are and stop", not "and then run".
 func emitManifestIfAsked(capability v1.Capability) bool {
 	for _, arg := range os.Args[1:] {
 		if arg != ManifestFlag {

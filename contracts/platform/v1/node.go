@@ -187,8 +187,8 @@ type Node struct {
 	// correctness to the writing capability. Both are GIN-indexed, so they
 	// are queryable but not typed.
 	Attributes []byte
-	// Artwork is the node's stored image URLs — poster, backdrop, logo (ADR
-	// 0071). Unlike the rest of the descriptive surface, which a detail screen
+	// Artwork is the node's stored image URLs — poster, backdrop, logo
+	// (platform#45). Unlike the rest of the descriptive surface, which a detail screen
 	// re-derives live from the provider (sdk#3), artwork is written at
 	// materialisation and read back here, so a list surface renders it without a
 	// per-card metadata call and a user can later override it. Empty when the
@@ -197,15 +197,14 @@ type Node struct {
 	// Genres are the work's genres as its source named them, stored and indexed
 	// so the library can be browsed by one.
 	//
-	// **It is on the node for the reason artwork is, plus one artwork does not
-	// have.** Like artwork it is universal rather than per-media-type variation,
-	// so it is a typed field and not a corner of the untyped Attributes document
-	// (platform#9, platform#45). Unlike artwork it is not rendered in bulk — it is
-	// *filtered* in bulk, which is a stronger reason to want it here: a facet
+	// Like artwork it is universal rather than per-media-type variation, so it
+	// is a typed field and not a corner of the untyped Attributes document
+	// (platform#9, platform#45). Unlike artwork it is not rendered in bulk but
+	// filtered in bulk, which is a stronger reason to want it here: a facet
 	// that reads a cache omits every title the cache has not reached yet, and an
 	// omission from a filtered list is invisible.
 	//
-	// **It is set on a Work and empty on everything beneath it.** A season and
+	// It is set on a Work and empty on everything beneath it. A season and
 	// an episode belong to their work's genres and do not have their own; a
 	// consumer that wants an episode's genres reads its Work. That is the one
 	// place this differs from artwork, which an episode genuinely does have.

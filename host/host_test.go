@@ -135,7 +135,7 @@ func connect(t *testing.T, impl v1.Capability, content v1.ContentService, catego
 	client, server := goplugin.TestPluginGRPCConn(t, false, map[string]goplugin.Plugin{
 		PluginName: p,
 	})
-	// Stop the server *before* closing the client, which is the opposite of the
+	// Stop the server before closing the client, which is the opposite of the
 	// obvious order and is why: `client.Close()` sends go-plugin's Shutdown RPC,
 	// whose handler calls `GRPCServer.Stop()` on a gRPC handler goroutine while
 	// this goroutine calls it too. Both write `GRPCServer.broker`, unsynchronised
@@ -367,7 +367,7 @@ func TestSearchRoleRoundTrips(t *testing.T) {
 // that are all non-zero, because a zero is what a dropped field looks like.
 type stubRicher struct {
 	stubCapability
-	// gotFilters is what CatalogItems was asked with, so the *request* leg is
+	// gotFilters is what CatalogItems was asked with, so the request leg is
 	// asserted too. Every field before this one travelled module-to-Platform;
 	// a filter selection travels the other way, and a converter can drop one
 	// direction while carrying the other.
@@ -407,17 +407,17 @@ func (s *stubRicher) CatalogItems(_ context.Context, req v1.CatalogItemsRequest)
 // TestLaterSDKFieldsCrossTheBoundary pins the three fields that were added to
 // the SDK with no wire representation to carry them.
 //
-// `ContentMetadata.Crew` and `EpisodePreview.RuntimeMinutes` (SDK v0.24.0) and
-// `CatalogItemsResponse.HasMore` (v0.23.0) compiled fine against a module.proto
-// that had no fields for them, so the converters here silently dropped all
-// three: an out-of-process module could populate them and the Platform would
-// receive a zero. Nothing failed, because a dropped field is indistinguishable
-// from a source that did not supply one — which is why this asserts on the far
-// side of a real gRPC round trip rather than on the converters directly.
+// ContentMetadata.Crew, EpisodePreview.RuntimeMinutes and
+// CatalogItemsResponse.HasMore compile fine against a module.proto that has no
+// fields for them, and the converters then drop them: an out-of-process module
+// populates one and the Platform receives a zero, with nothing failing, because
+// a dropped field is indistinguishable from a source that did not supply one.
+// Which is why this asserts on the far side of a real gRPC round trip rather
+// than on the converters directly.
 //
 // The rule this encodes: a field added to the SDK's virtual-content DTOs needs
-// a `module.proto` field and a line in each direction of the converter, and
-// this test is where forgetting shows up.
+// a module.proto field and a line in each direction of the converter, and this
+// test is where forgetting shows up.
 func TestLaterSDKFieldsCrossTheBoundary(t *testing.T) {
 	impl := &stubRicher{stubCapability: stubCapability{
 		manifest: v1.Manifest{
@@ -472,7 +472,7 @@ func TestLaterSDKFieldsCrossTheBoundary(t *testing.T) {
 		t.Error("HasMore did not cross: got false, want true")
 	}
 
-	// The filter *selection*, on the outbound leg. This is the first field on
+	// The filter selection, on the outbound leg. This is the first field on
 	// this request that a caller sets rather than a provider answers, so it is
 	// the first that a converter could drop in the direction the others do not
 	// travel in.
@@ -480,7 +480,7 @@ func TestLaterSDKFieldsCrossTheBoundary(t *testing.T) {
 		t.Errorf("CatalogItemsRequest.Filters did not cross: got %q, want %q", got, "28")
 	}
 
-	// And the filter *declaration*, on the way back.
+	// And the filter declaration, on the way back.
 	cats, err := cp.Catalogs(context.Background(), v1.CatalogsRequest{Caller: v1.CallerFromSession("h")})
 	if err != nil {
 		t.Fatalf("catalogs: %v", err)
@@ -498,7 +498,7 @@ func TestLaterSDKFieldsCrossTheBoundary(t *testing.T) {
 }
 
 // TestGenresCrossTheContentBoundary pins the library half of M2 slice 4 to the
-// same rule, on the *other* service: the writes a module makes back into the
+// same rule, on the other service: the writes a module makes back into the
 // Platform.
 //
 // A genre that does not survive this trip is the worst shape the failure has.
@@ -640,13 +640,12 @@ func (s *stubSource) Subtitles(_ context.Context, req v1.SubtitlesRequest) (v1.S
 // the rule TestLaterSDKFieldsCrossTheBoundary encodes, on the two source roles
 // that carry them.
 //
-// It is the same failure a third time. `StreamLink.Container`, `.VideoCodec` and
-// `.AudioCodec` and `SubtitlesRequest.Season` and `.Episode` compile perfectly
-// against a `module.proto` with no fields to hold them, and the converters then
-// drop them with no error anywhere: a module fills a codec and the Platform
-// receives an empty string, indistinguishable from a source that did not parse
-// one. Which is why this asserts on the far side of a real gRPC round trip
-// rather than on the converters.
+// StreamLink.Container, .VideoCodec and .AudioCodec, and SubtitlesRequest.Season
+// and .Episode, compile perfectly against a module.proto with no fields to hold
+// them, and the converters then drop them with no error anywhere: a module fills
+// a codec and the Platform receives an empty string, indistinguishable from a
+// source that did not parse one. Which is why this asserts on the far side of a
+// real gRPC round trip rather than on the converters.
 //
 // The two directions are not the same test. The three codec fields travel
 // module-to-Platform and are asserted on what the caller receives; the two

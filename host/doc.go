@@ -18,7 +18,7 @@
 //
 // # Both sides live here
 //
-// This package is imported by the module *and* by the Platform, because a
+// This package is imported by the module and by the Platform, because a
 // go-plugin plugin definition is inherently two-sided: the same handshake, the
 // same plugin name and the same conversions have to be agreed by both ends, and
 // a second copy in the Platform would be a second copy that can drift.
@@ -40,8 +40,8 @@
 // forward the Caller they were given, exactly as platform#13 already required.
 //
 // It does not change error classification, and it would be easy to think it
-// does because the wire carries a category. **A module cannot classify an error
-// either way.** The Platform's error categories live in its own internal
+// does because the wire carries a category. A module cannot classify an error
+// either way: the Platform's error categories live in its own internal
 // packages and are deliberately not published in the SDK, so in process a module
 // receives an error whose category it cannot read, and out of process it
 // receives the same. The category travels so the Platform end keeps it and so

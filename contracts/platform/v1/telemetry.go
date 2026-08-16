@@ -8,29 +8,20 @@ import (
 
 // The module observability surface (sdk#5).
 //
-// A module is an anti-corruption layer against a system it does not control,
-// which makes it the code most likely to meet a shape nobody predicted — and
-// until this existed a module had exactly two ways to say anything: return an
-// error, or print. Printing went to the Platform's stdout from another
-// repository, unstructured, unattributed, and with no way to classify what it
-// carried.
+// The Platform owns the observability plane and a module hooks into it: a
+// module emits, and the Platform decides where records go, how long they live
+// and who may read them. A module configures no exporter, no sink, no sampling
+// and no retention. That is the difference between a hook and a delegation, and
+// it is why this is an interface the Platform implements rather than a
+// re-export of whatever the Platform happens to use internally.
 //
-// The shape of the answer: **the Platform owns the observability plane, and a
-// module hooks into it.** A module emits; the Platform decides where records
-// go, how long they live and who may read them. A module configures no
-// exporter, no sink, no sampling and no retention. That is the difference
-// between a hook and a delegation, and it is why this is an interface the
-// Platform implements rather than a re-export of whatever the Platform happens
-// to use internally.
-//
-// **This file names no OpenTelemetry type, and a test enforces that.** The
-// implementation underneath is OTel (sdk#8) and lives next door in
-// `telemetry_otel.go`; what a module compiles against is this, so the thing
-// behind it can be replaced without breaking a published contract. The SDK's
-// zero-dependency rule ended with that record and was replaced by a narrower
-// one — the OTel *API* modules and nothing else — but the property it protected
-// did not change: a third party compiles against a contract rather than against
-// the Platform's taste.
+// This file names no OpenTelemetry type, and telemetry_seam_test.go enforces
+// that by parsing its imports. The implementation underneath is OTel (sdk#8)
+// and lives next door in telemetry_otel.go, so what a module compiles against
+// is this and the thing behind it can be replaced without breaking a published
+// contract. The SDK requires the OTel API modules and nothing else; what that
+// buys is a third party compiling against a contract rather than against the
+// Platform's taste.
 
 // RedactionClass says how a field's value may be recorded. It is the same
 // fail-closed vocabulary the Platform uses on its own records, and it crosses
@@ -63,7 +54,7 @@ const redacted = "[REDACTED]"
 
 // Field is one structured value on a record or a span.
 //
-// The zero value is *not* safe-by-default: a Field built as a struct literal
+// The zero value is not safe by default: a Field built as a struct literal
 // has an empty RedactionClass, which is not RedactionNone, and the Platform
 // redacts it on the way out. Forgetting to classify costs you the value, not
 // your users their privacy.
@@ -101,10 +92,10 @@ func Duration(key string, value time.Duration) Field {
 
 // Err records an error's message verbatim.
 //
-// Error text is authored by code rather than by a user — with one caveat worth
-// stating, because it is the common way this leaks: an error that interpolates
-// a response body, a URL or a username into its message has smuggled that past
-// this classification. That is a bug in the error, not in this call.
+// Error text is authored by code rather than by a user, with one caveat: an
+// error that interpolates a response body, a URL or a username into its message
+// has smuggled that past this classification. That is a bug in the error, not
+// in this call.
 func Err(err error) Field {
 	if err == nil {
 		return Field{Key: "error", Value: "", Redaction: RedactionNone}
@@ -154,13 +145,13 @@ func dropValue(value any) any {
 
 // Unit is the measurement unit of a Measure instrument.
 //
-// **It is a closed vocabulary, and that is deliberate** (platform#11's test: the
-// Platform branches on it). A unit is what lets a reader label an axis and a
-// backend convert between scales, so a free-form string here would produce
-// `ms`, `millis`, `milliseconds` and `Ms` across four modules describing the
-// same quantity — and nothing would ever reconcile them. The values are
-// OpenTelemetry's own unit annotations, so an exported instrument is already
-// correct for anything that reads UCUM.
+// It is a closed vocabulary (platform#11's test: the Platform branches on it).
+// A unit is what lets a reader label an axis and a backend convert between
+// scales, so a free-form string here would produce "ms", "millis",
+// "milliseconds" and "Ms" across four modules describing the same quantity, and
+// nothing would ever reconcile them. The values are OpenTelemetry's own unit
+// annotations, so an exported instrument is already correct for anything that
+// reads UCUM.
 //
 // A unit outside this set is recorded as unitless rather than refused: the
 // measurement is still worth having, and dropping data over an annotation would
@@ -169,7 +160,7 @@ type Unit string
 
 const (
 	// UnitSeconds measures elapsed time. Prefer a Span when what you want is
-	// *this* operation's duration in *this* trace — a Measure is for the
+	// one operation's duration inside one trace; a Measure is for the
 	// distribution across all of them.
 	UnitSeconds Unit = "s"
 	// UnitBytes measures a size: a payload, a file, a response body.
@@ -201,10 +192,10 @@ const (
 // invocation, the context already carries the trace, and the HTTP client the
 // Platform hands you propagates it. Using this adds detail, not correctness.
 //
-// **Metric attributes must be low-cardinality, and that is the one rule this
-// surface asks you to hold that logging does not.** Every distinct combination
-// of attribute values is a separate series that lives for as long as the
-// process does — unlike a log record, which ages out. An addon id or a status
+// Metric attributes must be low-cardinality. It is the one rule this surface
+// asks you to hold that logging does not: every distinct combination of
+// attribute values is a separate series that lives for as long as the process
+// does — unlike a log record, which ages out. An addon id or a status
 // code is a dimension; a title, a search term or a URL is not, whatever its
 // redaction class, because a digest has exactly as many distinct values as the
 // thing it digests. The Platform caps the number of series a module may create

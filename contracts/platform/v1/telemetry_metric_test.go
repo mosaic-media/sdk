@@ -18,7 +18,7 @@ import (
 //
 // It matters more here than on a record, not less: a log record ages out under
 // retention, and a metric series lives for the life of the process. A leaked
-// value on a record is eventually gone; a leaked value as a *dimension* is a
+// value on a record is eventually gone; a leaked value as a dimension is a
 // permanent label on a running counter.
 func TestMetricAttributesAreClassifiedLikeLogFields(t *testing.T) {
 	meter := &recordingMeter{}
@@ -106,8 +106,8 @@ func TestMeasureCarriesItsUnit(t *testing.T) {
 	}
 }
 
-// **This is the failure sdk#5 refused to ship**, and the reason it declined
-// to publish a counter at all until the Platform could back one: a module author
+// This is the failure sdk#5 refused to ship, and the reason it declined to
+// publish a counter at all until the Platform could back one: a module author
 // instruments against something that discards, gets no data, and has nothing
 // telling them why.
 //

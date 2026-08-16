@@ -58,7 +58,7 @@ func TestNormaliseTypeNameIsIdempotent(t *testing.T) {
 }
 
 // TestNodeCanonicalNormalisesEveryOpenVocabulary checks all three open
-// columns are covered, not just the one the artist gap exposed.
+// vocabularies are normalised, not only MediaType.
 func TestNodeCanonicalNormalisesEveryOpenVocabulary(t *testing.T) {
 	node := v1.Node{
 		MediaType:     "Anime Series",

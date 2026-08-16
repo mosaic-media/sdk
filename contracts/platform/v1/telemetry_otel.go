@@ -15,32 +15,26 @@ import (
 
 // OpenTelemetry behind the surface (sdk#8).
 //
-// **The surface above this file did not change, and that is the decision.**
-// A module still writes `v1.TelemetryFrom(ctx).Info("…", v1.String(…))`, still
-// classifies its fields, and still configures nothing. What changed is what
-// carries the record: an OpenTelemetry `log.Record` and an OpenTelemetry span
-// rather than a Mosaic-shaped one, so everything Mosaic emits is readable by
-// tooling nobody had to write.
+// The surface above this file is unaffected: a module still writes
+// v1.TelemetryFrom(ctx).Info("…", v1.String(…)), still classifies its fields,
+// and still configures nothing. What carries the record is an OpenTelemetry
+// log.Record and an OpenTelemetry span rather than a Mosaic-shaped one, so
+// everything Mosaic emits is readable by tooling nobody had to write — a shared
+// vocabulary sourced from outside Mosaic so that no component owns it.
 //
-// Mosaic had hand-written the same telemetry three times — the Platform's, this
-// one, and the Supervisor's, whose record format is duplicated from the
-// Platform's with a test naming the JSON keys as the only thing holding them
-// together. This is the shared vocabulary that replaces all three, sourced from
-// outside Mosaic so that no component owns it.
-//
-// **This file takes the OTel *API* and never the SDK.** A module gets `log.Logger`
-// and `trace.Tracer` — interfaces it receives — and no provider, no exporter, no
-// sampler and no global. That is sdk#5's ownership rule unchanged: the
-// Platform decides where a record goes, how long it lives and who may read it.
-// A module that reached for `otel.SetLoggerProvider` would be configuring the
+// This file takes the OTel API and never the OTel SDK. A module gets
+// log.Logger and trace.Tracer — interfaces it receives — and no provider, no
+// exporter, no sampler and no global. That is sdk#5's ownership rule unchanged:
+// the Platform decides where a record goes, how long it lives and who may read
+// it. A module that reached for otel.SetLoggerProvider would be configuring the
 // Platform's observability plane from inside it, which is the thing this
 // arrangement exists to prevent.
 
 // Encoder converts classified Fields into OpenTelemetry attributes.
 //
-// **The redaction happens here, so an implementer cannot forget it.** OTel's
-// attribute model has no notion of classification — `log.String(k, v)` carries
-// `v` — so the conversion is the last place the rule can be applied, and it is
+// The redaction happens here, so an implementer cannot forget it. OTel's
+// attribute model has no notion of classification — log.String(k, v) carries v
+// — so the conversion is the last place the rule can be applied, and it is
 // applied to every field on every path rather than at each call site.
 //
 // It is exported because more than one component performs the conversion: the
@@ -50,7 +44,7 @@ import (
 type Encoder struct {
 	// Digest resolves an Identifier field to its stable pseudonym.
 	//
-	// **Nil drops Identifier fields rather than emitting them**, and that is the
+	// Nil drops Identifier fields rather than emitting them, which is the
 	// deliberate failure direction. Identifier is the one class that carries its
 	// value across the module boundary, because only the Platform holds the
 	// install salt (sdk#5) — so an encoder with no salt is one that cannot
@@ -62,8 +56,8 @@ type Encoder struct {
 
 // Attributes converts fields, dropping what cannot be recorded safely.
 //
-// **One conversion serves both records and spans**, because the OpenTelemetry
-// logs API carries `attribute.KeyValue` rather than a type of its own. A span
+// One conversion serves both records and spans, because the OpenTelemetry logs
+// API carries attribute.KeyValue rather than a type of its own. A span
 // attribute is therefore not a laxer channel than a log field in any sense,
 // including the mechanical one: the same code classifies both.
 func (e Encoder) Attributes(fields []Field) []attribute.KeyValue {
@@ -143,8 +137,8 @@ type TelemetryOptions struct {
 	Tracer trace.Tracer
 	// Meter creates the counters and histograms. Nil discards them.
 	//
-	// It is a `metric.Meter` — an interface the caller supplies — and never a
-	// `MeterProvider`, for the same reason Logger is not a LoggerProvider: a
+	// It is a metric.Meter — an interface the caller supplies — and never a
+	// MeterProvider, for the same reason Logger is not a LoggerProvider: a
 	// provider is where views, readers and exporters are configured, and that
 	// is the Platform's (sdk#5). A module receives the one thing it needs to
 	// record and nothing it could use to decide where the recording goes.
@@ -158,13 +152,13 @@ type TelemetryOptions struct {
 
 // NewTelemetry builds the OpenTelemetry-backed implementation of Telemetry.
 //
-// **ctx is bound, and it is bound because the interface has no room for it.**
-// `Telemetry.Info` takes a message and fields, matching how a caller wants to
-// write a log line; OTel's `Logger.Emit` takes a context, because that is where
-// the active span lives. Something has to hold it, and the invocation's context
-// is the honest thing to hold: this Telemetry belongs to one invocation, which
-// is also the scope its quota and its attribution belong to. Span takes its own
-// ctx explicitly, since a span's parent is whatever the caller is inside at that
+// ctx is bound because the interface has no room for it: Telemetry.Info takes a
+// message and fields, matching how a caller wants to write a log line, while
+// OTel's Logger.Emit takes a context, because that is where the active span
+// lives. Something has to hold it, and the invocation's context is the honest
+// thing to hold: this Telemetry belongs to one invocation, which is also the
+// scope its quota and its attribution belong to. Span takes its own ctx
+// explicitly, since a span's parent is whatever the caller is inside at that
 // moment rather than whatever it was when this was built.
 //
 // The Platform calls this at the invocation seam. A module never does.
@@ -265,7 +259,7 @@ func (s *otelSpan) SetAttributes(attrs ...Field) {
 // Fail marks the span failed and records err. A nil error is ignored, so
 // `span.Fail(err)` is safe on the success path.
 //
-// No error *category* is taken from the module: the seven categories are a
+// No error category is taken from the module: the seven categories are a
 // Platform contract, and letting a module assert one would let it describe its
 // own failure in the Platform's vocabulary.
 func (s *otelSpan) Fail(err error) {
@@ -280,8 +274,8 @@ func (s *otelSpan) End() { s.span.End() }
 
 // The metric half (sdk#9).
 //
-// **The instrument is created on every call, and that is not the oversight it
-// looks like.** An OpenTelemetry meter caches by the instrument's identifying
+// The instrument is created on every call, which is not the oversight it looks
+// like. An OpenTelemetry meter caches by the instrument's identifying
 // fields — name, kind, unit, description — and returns the same instrument for
 // a repeat request, so this is a map lookup rather than an allocation. The
 // alternative is a per-module instrument cache, which buys a lock-free lookup
@@ -336,11 +330,11 @@ func unitAnnotation(u Unit) string {
 // reportInstrument says once, per invocation, that an instrument could not be
 // created.
 //
-// **A metric that silently discards is the specific failure sdk#5 refused to
-// ship**, and the only way to create an instrument wrongly is to name it
-// wrongly — a name OpenTelemetry rejects, which no test against a no-op meter
-// would ever reveal. So it is reported through the channel the module is
-// already reading.
+// A metric that silently discards is the specific failure sdk#5 refused to
+// ship, and the only way to create an instrument wrongly is to name it wrongly
+// — a name OpenTelemetry rejects, which no test against a no-op meter would
+// ever reveal. So it is reported through the channel the module is already
+// reading.
 //
 // Once per invocation rather than once per call: a bad name in a loop would
 // otherwise turn a diagnostic into the flood the Platform's quota exists to

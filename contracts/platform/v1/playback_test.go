@@ -7,7 +7,7 @@ import (
 	v1 "github.com/mosaic-media/sdk/contracts/platform/v1"
 )
 
-// stubPlayer is a consumer module: it fills RolePlayback and *no source role*.
+// stubPlayer is a consumer module: it fills RolePlayback and no source role.
 // That is the point of testing it separately from stubProvider — a consumer is
 // not a source that happens to also play, and nothing in the contract should
 // require it to import content it did not source (platform#25).

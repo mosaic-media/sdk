@@ -26,7 +26,7 @@ type AddContentWorkCommand struct {
 	// Genres are the work's genres as the source names them, stored on the node
 	// and indexed so the library can be browsed by one.
 	//
-	// **Stored as the source gave them.** Two sources disagree about the words —
+	// Stored as the source gave them. Two sources disagree about the words —
 	// one says "Sci-Fi" where another says "Science Fiction" — and this does not
 	// reconcile them, because a synonym table that quietly rewrote a source's
 	// own vocabulary would be the Platform inventing a fact. A library fed by
@@ -103,11 +103,9 @@ type AttachContentPartResult struct {
 
 // SetContentArtworkCommand replaces a node's stored artwork.
 //
-// It is the first command that *updates* a node rather than creating one, and
-// it exists because artwork was the first stored field with a reason to change
-// after materialisation. platform#45 recorded its absence as owed in as many
-// words: "there is no command that updates a stored work's fields, so a
-// re-import does not refresh its artwork today."
+// It is the one command that updates a node rather than creating one, and it
+// exists because artwork was the first stored field with a reason to change
+// after materialisation (platform#45).
 //
 // Two things need it. The artwork enrichment pass (sdk#6) resolves art for a
 // work the module already wrote, so it has a node and no way to put art on it.
@@ -124,8 +122,8 @@ type AttachContentPartResult struct {
 //
 // This is the same shape as configureModule's replace semantics (platform#17), and
 // it carries the same obligation: a caller that writes a partial value erases
-// the rest. In particular, **a caller that re-resolves the flat slots will
-// overwrite a user's chosen artwork**, so the selection feature will need to
+// the rest. In particular, a caller that re-resolves the flat slots will
+// overwrite a user's chosen artwork, so the selection feature will need to
 // mark a choice as the user's before an automated pass can safely run again.
 // Nothing marks it today because nothing sets it today.
 type SetContentArtworkCommand struct {

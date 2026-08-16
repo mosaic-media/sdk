@@ -20,7 +20,7 @@ import "time"
 // PlaybackState is one viewer's position in one item.
 type PlaybackState struct {
 	// NodeID is the item being watched. State is keyed by node and not by
-	// Part, because a viewer resumes *an episode* — not the 1080p release of an
+	// Part, because a viewer resumes an episode — not the 1080p release of an
 	// episode they happened to start with. Watching half from one source and
 	// finishing from another is one position, not two.
 	NodeID NodeID

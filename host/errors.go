@@ -12,27 +12,27 @@ import (
 // Error handling across the boundary, and the layering constraint that shapes
 // it.
 //
-// The Platform's error categories live in `internal/platform/contracts` and are
-// deliberately not published in the SDK (platform#12: a capability calls
+// The Platform's error categories live in its own internal/platform/contracts
+// package and are not published in the SDK (platform#12: a capability calls
 // application services, and the categories are the Platform's own vocabulary).
-// This package compiles against the SDK, so **it cannot read a category off an
-// error** — it only ever sees `error`.
+// This package compiles against the SDK, so it cannot read a category off an
+// error — it only ever sees error.
 //
 // That is why [CategoryFunc] exists. The Platform, which does know its own
 // vocabulary, injects a function that names the category of an error it
 // produced. Nothing here knows what the strings mean; it passes them through so
 // the far end and the telemetry plane keep them.
 //
-// Two consequences worth stating rather than discovering:
+// Two consequences:
 //
-//   - **A module still cannot classify an error, and this boundary does not
-//     change that.** In process it receives an error whose category it has no
+//   - A module still cannot classify an error, and this boundary does not
+//     change that. In process it receives an error whose category it has no
 //     type to read; here it receives the same. The category on the wire is for
 //     the Platform end and for telemetry. If a module should ever be able to
 //     branch on a category, that is an SDK addition, and the value is already
 //     being carried for it.
-//   - **An error a module returns has no category, exactly as in process.**
-//     The Platform's CategoryOf maps an uncategorised error to Internal, and a
+//   - An error a module returns has no category, exactly as in process. The
+//     Platform's CategoryOf maps an uncategorised error to Internal, and a
 //     module has no way to construct a categorised one, so nothing is lost by
 //     sending it as a plain message.
 
@@ -67,7 +67,7 @@ func categoryToWire(s string) modulev1.ErrorCategory {
 }
 
 // categoryToCode gives the gRPC status a sensible code. The code is a transport
-// hint and not the contract: the category rides as a status *detail*, because
+// hint and not the contract: the category rides as a status detail, because
 // the two vocabularies are not in one-to-one correspondence and round-tripping
 // through codes alone would turn a Conflict into whatever code happened to be
 // closest.

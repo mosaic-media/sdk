@@ -3,9 +3,7 @@ package v1
 import "context"
 
 // Capability is what an optional Module implements so the Platform can invoke
-// it. sdk#1 always reserved a capability and registration surface for the
-// SDK; platform#12 populated only the content services, and this is the first
-// addition of the capability side.
+// it (sdk#1, platform#12).
 //
 // The dependency direction is the whole point: a Module depends only on this
 // SDK, and the Platform holds the Capability, registers it and routes to it.
@@ -46,9 +44,9 @@ type ImportRequest struct {
 	// this to every service call.
 	Caller Caller
 	// Ref names the virtual content item to materialise — the handle a read
-	// role produced (platform#18). It replaced a free-form query string in v0.4.0:
-	// import is no longer "parse an id from a string" but "materialise this
-	// result". The module reads Ref.NativeID/NativeType to source the detail.
+	// role produced (platform#18). Import materialises a result rather than
+	// parsing an id out of a string: the module reads Ref.NativeID and
+	// Ref.NativeType to source the detail.
 	Ref ContentRef
 	// Settings is the module's user-managed configuration document — the
 	// opaque JSON a user set for this module through the Platform (an addon
@@ -85,9 +83,8 @@ type Manifest struct {
 	// Provides declares the provider roles this module fills (sdk#2). The
 	// Platform checks at composition that each declared role is backed by the
 	// matching provider interface in provider.go, then resolves providers by
-	// role at runtime. Empty means the module only imports. This is the first
-	// real growth of the manifest shape, and what the media_types registry
-	// (platform#11) has waited on.
+	// role at runtime. Empty means the module only imports. Growing the manifest
+	// is what the media_types registry (platform#11) waits on.
 	Provides []Role
 }
 

@@ -10,12 +10,11 @@ import (
 // TestArtworkDecodesADocumentWrittenBeforeCandidates is the compatibility claim
 // platform#47 rests on, made executable.
 //
-// Artwork is stored as a jsonb document and migration 0019 predicted that a
-// candidate set could be added "without a second migration". That is only true
-// if a document written before candidates existed still decodes to the same
-// selection it always was. Nothing else in the build would notice if it stopped
-// being true — the column would keep accepting writes and old rows would quietly
-// lose their art.
+// Artwork is stored as one jsonb document, so adding a candidate set needs no
+// second migration only if a document written before candidates existed still
+// decodes to the same selection it always was. Nothing else in the build would
+// notice if that stopped being true — the column would keep accepting writes and
+// old rows would quietly lose their art.
 func TestArtworkDecodesADocumentWrittenBeforeCandidates(t *testing.T) {
 	// Exactly what module-cinemeta and module-tmdb have been writing.
 	stored := []byte(`{"poster":"https://cdn/p.jpg","backdrop":"https://cdn/b.jpg","logo":"https://cdn/l.png"}`)

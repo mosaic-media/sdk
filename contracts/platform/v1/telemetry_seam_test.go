@@ -9,19 +9,22 @@ import (
 
 // Where OpenTelemetry is allowed to appear, and where it is not.
 //
-// **"Abstract it so the implementation can change" is a claim, and this is what
-// makes it checkable.** The surface a *module* compiles against — `Telemetry`,
-// `Span`, `Field` and its constructors, `TelemetryFrom` — must be expressible
-// without naming an OpenTelemetry type, because that is what lets the
-// implementation underneath be replaced without a breaking change to a contract
-// third parties build against. The surface a *host* uses to wire the pipeline —
-// `NewTelemetry`, `TelemetryOptions`, `Encoder` — cannot be, and should not
-// pretend to be: it exists precisely to hand OTel's logger and tracer in.
+// "Abstract it so the implementation can change" is a claim; this test is what
+// makes it checkable. The surface a module compiles against — Telemetry, Span,
+// Field and its constructors, TelemetryFrom — must be expressible without naming
+// an OpenTelemetry type, because that is what lets the implementation underneath
+// be replaced without a breaking change to a contract third parties build
+// against. The surface a host uses to wire the pipeline — NewTelemetry,
+// TelemetryOptions, Encoder — cannot be, and should not pretend to be: it exists
+// precisely to hand OTel's logger and tracer in.
 //
 // So the split is physical rather than a convention: one file per side, and this
 // test is the line between them. If a module-facing signature ever needs an OTel
 // type, that is the abstraction failing, and it should fail here loudly rather
 // than in somebody's build a year later.
+//
+// The check reads these two files by name, so a module-facing declaration moved
+// into a third file is not covered by either half.
 const (
 	moduleFacingFile = "telemetry.go"
 	hostFacingFile   = "telemetry_otel.go"

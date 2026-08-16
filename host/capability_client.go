@@ -14,9 +14,9 @@ import (
 // a compiled-in module. That is the property platform#39 is arranged around, and it
 // is why no Platform code above the registry changes.
 //
-// **It implements every role interface unconditionally**, which matters because
+// It implements every role interface unconditionally, which matters because
 // Go's type assertions are how the Platform discovers roles in process
-// (`cap.(v1.SearchProvider)`). Against a proxy that assertion always succeeds,
+// (cap.(v1.SearchProvider)). Against a proxy that assertion always succeeds,
 // so it is not a usable test of what the module actually fills. Use
 // [Roles] instead, which reads the manifest — trustworthy because the handshake
 // refuses a module whose manifest declares a role it does not serve.

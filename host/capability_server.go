@@ -89,6 +89,9 @@ func (s *capabilityServer) Import(ctx context.Context, req *modulev1.ImportReque
 	}, nil
 }
 
+// withTelemetry seeds the context for a read role. A callback stream that
+// cannot be dialled costs the role its telemetry and nothing else — unlike
+// Import, which fails, because a read role needs no ContentService.
 func (s *capabilityServer) withTelemetry(ctx context.Context) context.Context {
 	_, telemetry, err := s.platform()
 	if err != nil {

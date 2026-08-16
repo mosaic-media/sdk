@@ -14,7 +14,7 @@ type SearchContentQuery struct {
 	Title     string
 	MediaType MediaType
 	Kind      NodeKind
-	// AttributesContain narrows to nodes whose Attributes document *contains*
+	// AttributesContain narrows to nodes whose Attributes document contains
 	// this JSON document. Empty means no filter.
 	//
 	// # Why containment, and not a typed filter
@@ -24,7 +24,7 @@ type SearchContentQuery struct {
 	// writing capability). A typed filter would require the Platform to learn
 	// what a module put there, which is the coupling the whole arrangement
 	// exists to avoid. Containment is the one question that can be asked without
-	// understanding the answer — *does this document contain this shape* — so it
+	// understanding the answer — does this document contain this shape — so it
 	// is the only filter that respects the ownership.
 	//
 	// That makes it the counterpart of FindContentByExternalID, which has always
@@ -41,26 +41,26 @@ type SearchContentQuery struct {
 	// because a filter that silently matched nothing would read as "you own none
 	// of these" rather than as a mistake.
 	//
-	// **It is a storage-engine obligation, not a Postgres detail.** Any
+	// It is a storage-engine obligation, not a Postgres detail: any
 	// StorageAdapter implementation must support containment over both JSON
-	// documents; the Platform's own does it with an indexed jsonb operator.
+	// documents. The Platform's own does it with an indexed jsonb operator.
 	//
-	// **A module can see what another module wrote.** That is deliberate and
+	// A module can see what another module wrote. That is deliberate and
 	// matches the rest of the read surface — providers are resolvable across
 	// modules by design (sdk#2) — but it means a module should treat its
 	// attribute keys as a published shape rather than a private one.
 	AttributesContain []byte
-	// Genres narrows to nodes carrying *every* genre listed. Empty means no
+	// Genres narrows to nodes carrying every genre listed. Empty means no
 	// filter.
 	//
 	// Conjunctive rather than disjunctive because that is what a facet control
-	// means when two chips are lit: "crime *and* comedy", not "either". One
+	// means when two chips are lit: "crime and comedy", not "either". One
 	// chip — the common case — reads the same under both rules, so the choice
 	// only shows up when a user has expressed a narrowing and the union would
 	// have widened it instead.
 	//
 	// Matching is on the stored strings, which are the source's own words
-	// (Node.Genres). The Platform canonicalises their *form* the way it does
+	// (Node.Genres). The Platform canonicalises their form the way it does
 	// every open vocabulary (platform#11) and does not reconcile their meaning, so
 	// "Sci-Fi" and "Science Fiction" are two genres here because they are two
 	// genres in the sources.
@@ -109,11 +109,9 @@ type GetContentNodeResult struct {
 
 // ListContentPartsQuery reads the playable parts of an item node.
 //
-// It closes a hole the surface has carried since the content model landed:
-// AttachContentPart could write a Part and nothing could read one back, so a
-// capability could not see what it had itself created. platform#25 named it while
-// building the first consumer; this is what finally needed it — a re-import has
-// to know which releases are already stored before it can add the ones that are
+// It is the read side of AttachContentPart (platform#25): without it a
+// capability cannot see what it has itself created, and a re-import has no way
+// to know which releases are already stored before adding the ones that are
 // not.
 type ListContentPartsQuery struct {
 	Caller Caller
