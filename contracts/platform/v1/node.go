@@ -110,7 +110,9 @@ const (
 // the same reason as MediaType.
 type ContainerType string
 
-// The container types named in platform#9.
+// The container types: the grouping layers a tree puts between a Work and its
+// items — a season of a series, a volume or story arc of a manga, a disc or box
+// set of a physical release (platform#9).
 const (
 	ContainerSeason ContainerType = "season"
 	ContainerVolume ContainerType = "volume"
@@ -123,7 +125,9 @@ const (
 // reason as MediaType.
 type ItemType string
 
-// The item types named in platform#9.
+// The item types: the leaves Parts attach to — an episode of a series, a track
+// of an album, a chapter of a book or manga, an issue of a comic, a film's
+// feature and the extras beside it (platform#9).
 const (
 	ItemEpisode ItemType = "episode"
 	ItemTrack   ItemType = "track"
