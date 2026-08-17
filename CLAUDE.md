@@ -1,281 +1,118 @@
-# Claude Instructions — Mosaic SDK
+# Claude Instructions — sdk
 
-This repository is the **published contract surface** between the Platform and
-the Modules that extend it ([sdk#1](docs/adr/0001-sdk-as-public-contract-language.md)).
-It is `github.com/mosaic-media/sdk`, consumed as an ordinary dependency with no
-`replace`.
+`github.com/mosaic-media/sdk` is the published contract a Mosaic module compiles
+against: the content models and service types, the provider roles, the opaque
+`Caller`, and the module telemetry surface. `README.md` describes that surface
+and carries its per-version changelog; this file is how to work here.
 
-`README.md` describes the surface and carries the per-version changelog. This
-file is how to *work* here — the rules, and the reasons they exist.
+Fleet-wide conventions — commits, decision records, citation form, the roadmap —
+are in [`architecture`](https://github.com/mosaic-media/architecture/blob/main/CLAUDE.md).
+This file is what is specific to `sdk`.
 
-Two Go modules live in this repository, and the distinction is load-bearing:
+## Two Go modules, and the nesting is load-bearing
 
-| Module | Path | What it is |
+| Module | Directory | What it is |
 |---|---|---|
-| the contract | `github.com/mosaic-media/sdk` | `contracts/platform/v1/` — what a module compiles against |
-| the harness | `github.com/mosaic-media/sdk/host` | `host/` — what an out-of-process module links to serve itself |
+| `github.com/mosaic-media/sdk` | `contracts/platform/v1/` | the contract a module compiles against |
+| `github.com/mosaic-media/sdk/host` | `host/` | the go-plugin/gRPC harness a module serves itself with, and the Platform's client for one |
 
-`host` is **nested so the contract's dependency graph does not have to carry
-it**. It requires go-plugin, gRPC and the SDUI contract; the parent must not.
-That is the whole reason for the nesting, and `host/nodeps_test.go` is the
-assertion that keeps it honest — see below.
+`host` is nested so its dependencies — go-plugin, gRPC, the SDUI contract — stay
+out of the parent's graph. Read each `go.mod` for what either requires; do not
+describe one from the other, and do not add to the parent's on the way to fixing
+something in the harness.
 
-## This is hand-written Go. It is not generated, and it is not protobuf.
+They are tagged separately (`vX.Y.Z` and `host/vX.Y.Z`), and `host/go.mod`
+requires the parent by version like any other consumer — so a change spanning
+both is two steps, not one.
 
-**Read this before adding a file.** Mosaic has two published contract
-repositories and they are built in opposite ways, which is a reasonable thing to
-get wrong. This one is hand-written Go;
-[`contracts`](https://github.com/mosaic-media/contracts) is generated, and its
-own `CLAUDE.md` says from what.
+## This is hand-written Go. It is not generated.
 
-The reason is not historical accident. **This SDK's job is Go interfaces with
-behaviour** — `Capability`, `ContentService`, the provider roles, `Telemetry` —
-which a module *implements* in its own process. Protobuf describes messages and
-RPC services; it cannot express an interface a third party satisfies in-process.
-A wire format consumed by several client languages is the opposite case, and
-that is why it lives in the other repository rather than here.
-[contracts#6](https://github.com/mosaic-media/contracts/blob/main/docs/adr/0006-contracts-protobuf-workspace.md)
-made the SDUI and session contracts protobuf; its title names that scope, and it
-does not extend here.
+There are no `.proto` files here, no codegen and no build step: a new type is a
+`.go` file beside `capability.go`. Mosaic's *other* published contract
+repository, [`contracts`](https://github.com/mosaic-media/contracts), is the
+generated one, and carrying a rule across from it is the easy mistake to make.
+The split follows what each contract is — this one is Go interfaces a module
+implements in its own process, which protobuf cannot express.
 
-So: add a `.go` file beside `capability.go` and `provider.go`. Do not add a
-`.proto`, do not add a `buf.yaml`, and do not generate anything. There are no
-generated files here and no build step.
+## The two tests that hold the boundaries
 
-## Non-negotiable rules
+Read both before touching what they cover; each asserts something narrower than
+its name suggests.
 
-- **This SDK names no implementation.** The principle governs every change here:
-  **the SDK says how a module interacts with the Platform; the Platform holds the
-  implementations.** The surface may be **wide** — a module nobody has imagined
-  must be expressible, and a missing verb is found only by someone trying to
-  build the thing it blocks — but never **deep**. Those are not in tension: a
-  contract can declare a great many interfaces and still name no library, which
-  is what the content surface already does.
+- **`host/nodeps_test.go`** reads `../go.mod` as text and fails on any require
+  outside `allowedParentDependencies`. It is an **allowlist, not an emptiness
+  assertion**, and because it reads text it checks indirect requires like any
+  other. What is outside it — the OTel SDK and anything under it, an exporter, a
+  collector client — is what a *binary* wires, so admitting one is a decision
+  rather than a `go get`. The test lives in `host` because `host` is the module
+  whose own dependency list is the temptation.
+- **`contracts/platform/v1/telemetry_seam_test.go`** asserts that
+  `telemetry.go` imports no `go.opentelemetry.io/…` path and that
+  `telemetry_otel.go` imports at least one — the second half so the split cannot
+  be satisfied by collapsing the two files. It reads those **two files by
+  name**: a module-facing declaration moved into a third file is covered by
+  neither. `telemetry.go` is the surface a module compiles against; anything
+  needing an OTel type belongs next door.
 
-- **The dependency rule is an allowlist, and its current state is not what
-  [sdk#10](docs/adr/0010-the-sdk-carries-no-implementation.md) wants.** Read both
-  the record and `go.mod` before writing anything about it, because they
-  disagree on purpose and the record's `**Status:**` line says so.
+## Rules for a change here
 
-  As this is written, `go.mod` **requires four OpenTelemetry API modules** —
-  `go.opentelemetry.io/otel`, `.../log`, `.../metric`, `.../trace` — plus
-  `github.com/cespare/xxhash/v2` as an indirect they pull in.
-  `host/nodeps_test.go` enforces exactly that five-entry allowlist and fails on
-  anything else. It is **not** an emptiness assertion, and describing it as one
-  has already put a false sentence in this file.
-
-  [sdk#10](docs/adr/0010-the-sdk-carries-no-implementation.md) decides to remove
-  them and is **unbuilt**. Until it lands: **do not widen the allowlist**, and do
-  not write "no require block at all" as though the removal had happened. The
-  live rule is the allowlist; the intended one is in the record.
-
-  What is *not* on the list and cannot be added without a decision:
-  `go.opentelemetry.io/otel/sdk` and anything under it, any exporter, any
-  collector client. Those are what a *binary* wires, and a module that could
-  reach them could configure the observability plane from inside it.
-
-- **The module-facing surface must stay free of OpenTelemetry types, and this is
-  checked.** `telemetry.go` is the module-facing half (`Telemetry`, `Span`,
-  `Field`, `TelemetryFrom`); `telemetry_otel.go` is the host-facing half
-  (`NewTelemetry`, `TelemetryOptions`, `Encoder`). The split is physical rather
-  than a convention, and `telemetry_seam_test.go` parses `telemetry.go`'s imports
-  and fails the build if an OTel path appears there. "Abstract it so the
-  implementation can change" is a claim; that test is what makes it checkable.
-
-  **The classification rule stays here, in pure Go.** Resolving a `Field` to the
-  value a sink may record is `(any, bool)`; only the last step, building an
-  `attribute.KeyValue`, needs OTel. A second copy of a fail-closed rule is how
-  the guarantee quietly stops being one.
-
-- **A facility a module needs is reached declaratively, never as a primitive.**
-  This settles the crypto question without a second argument: the Platform's
-  secret facility is reached through a settings field marked secret and sealed by
-  the Platform — never through `Seal`/`Open` primitives here, which would publish
-  an implementation and hand a module an encryption oracle.
-
-- **Nothing here imports the Platform.** The dependency points one way. If a
-  capability needs a private Platform import, the contracts are not ready to
-  publish — that is the stop point, and it governs any change here.
-
-- **No storage contracts, no transaction type, no identity or configuration
-  models.** A capability calls application services, never stores
-  ([platform#8](https://github.com/mosaic-media/platform/blob/main/docs/adr/0008-capabilities-do-not-own-stores.md)).
-
-- **Apache-2.0**, unlike the Platform's AGPL. This is the permissive surface a
-  third party compiles against. Files here carry **no SPDX header** — match the
-  files already present rather than importing the Platform's convention.
+- **Nothing in this repository imports the Platform.** The dependency points one
+  way. If something here needs a private Platform import, the contract is not
+  ready to publish — that is the stop point.
+- **No store contract, no transaction type, no identity or configuration
+  model.** `contracts/platform/v1/doc.go` says so and means it: a capability
+  calls application services, never stores. A facility a module needs is reached
+  *declaratively* — a settings field the Platform seals — never as a primitive
+  here, because `Seal`/`Open` in a published contract names an implementation
+  and hands a module an encryption oracle
+  ([sdk#10](docs/adr/0010-the-sdk-carries-no-implementation.md)).
+- **The redaction rule is applied here, in pure Go, and only once.**
+  `Field.EmitValue` re-applies the class on the way out, so a `Field` built as a
+  struct literal — whose zero-value class is not `RedactionNone` — fails closed.
+  It is exported precisely so the Platform applies *this* rule instead of
+  reimplementing it; a second copy of a fail-closed rule is how the guarantee
+  quietly stops being one.
+- **The contract is tested only through its exported surface.** Every test file
+  under `contracts/platform/v1` is `package v1_test`, and a new interface earns
+  a stub that satisfies it from outside the package with no Platform types. That
+  is the check that somebody holding only this module can implement it.
+- **Every exported identifier carries a doc comment saying *why*.** This is read
+  by people who cannot read the Platform's source; the comments are the
+  documentation.
+- **Nothing in `host` may write to stdout** beyond `serve.go`'s manifest mode,
+  which never serves. go-plugin's handshake owns that stream.
+- **Update `README.md`'s Status section in the same change.** It is the only
+  account of what a version contains.
+- **Apache-2.0**, with a `NOTICE`. Go files here carry no SPDX header — match
+  the files already present.
 
 ## Decision records
 
-[`docs/adr/README.md`](docs/adr/README.md) is the generated index of the records
-this repository owns, with each one's status. **Read the index rather than
-counting files, and do not restate a status here** — it is generated from the
-records and this file is not.
+[`docs/adr/README.md`](docs/adr/README.md) is the generated index; read it rather
+than the directory, and regenerate it with `scripts/adr_index.py` rather than
+editing it.
 
-The index is produced by `adr_index.py`, which
-[`architecture`](https://github.com/mosaic-media/architecture) owns for the
-fleet. **Neither that script nor the citation lint is vendored here yet**, so
-nothing in this repository's gate checks the index is current or that a citation
-resolves. Until they are, both are on you: regenerate the index when you add a
-record, and write every citation as a `repo#N` link.
+`scripts/adr_index.py` and `scripts/adr_lint.py` are **vendored from
+[`architecture`](https://github.com/mosaic-media/architecture)** and say so in
+their headers. Do not edit them here: a drifted copy is this repository's gate
+enforcing a rule that has moved. Change them there and re-vendor.
 
-## Versioning and release
+## The gate
 
-Pre-1.0 on purpose. A change is a **minor** bump, and `README.md`'s **Status**
-section is updated in the same change — it is the per-version changelog and the
-only way anyone finds out what a version contains. Read it for where the
-numbering has got to rather than trusting an example written here.
-
-**Tag pushes are currently refused from this environment**, and this repository
-has no tags at all as a result. Do not present tagging as a step you have
-completed, and do not tell anyone a version is published when only its commit is
-on `main`.
-
-What works instead: a Go consumer moves onto an untagged commit as an ordinary
-pseudo-version `require` resolved from the proxy. That keeps the standing rule
-intact — **a `replace` must never land in a commit** — and it is how every
-consumer is presently pinned. For local cross-repo work add a `replace` to the
-*consumer's* `go.mod` temporarily, then move it to a pseudo-version and remove
-the `replace` before committing.
-
-Note that `host` requires the parent SDK by version like any other consumer, so
-a change spanning both is two steps, not one.
-
-## Everything runs in the container, nothing runs on the host
-
-**Do not run `go build`, `go test`, `go vet` or `gofmt` directly on this
-machine.** This repository's gate runs inside its test container:
+Nothing is built or tested on the host.
 
 ```bash
 docker compose -f docker-compose.test.yml run --rm test
 ```
 
-That runs gofmt over the tree, then `go build`, `go vet` and `go test` **twice —
-once for the contract and once for `host`**, against the Go version pinned in the
-compose file, which must stay equal to `go.mod`'s. Append `bash` for a shell in
-the same environment.
+In order, that runs `adr_index.py --check`, `adr_lint.py`, `gofmt -l` over the
+tree, and then `go build`, `go vet` and `go test` **twice — once at the root and
+again in `host/`**, because `./...` does not descend into a nested module. A gate
+that ran only at the root would report green having never compiled the harness.
+The image's Go version and `go.mod`'s `go` directive are pinned to each other;
+bump both together. Append `bash` for a shell in the same environment.
 
-**The second pass is the point, not a formality.** `./...` does not descend into
-a nested module, so a gate that ran only in the root would report green while
-never compiling the harness — and `host` is where `nodeps_test.go` lives, so it
-would also never check the dependency rule the whole nesting exists to protect.
-
-This repository has **no CI workflows**, so the container is the only gate there
-is. Nothing will refuse a push on your behalf.
-
-The container's other argument is weaker here than elsewhere and still worth
-keeping: there is no hidden dependency to supply — no database, no generator —
-but **this is the surface a third party compiles against**, and the only claim
-worth making about it is that it builds under a pinned toolchain rather than
-under whatever a particular machine happens to have installed. A contract that
-compiles only where its author works is not a contract.
-
-## Workflow
-
-- Every exported type and function carries a doc comment that says *why*, not
-  only what. This is a published contract read by people who cannot read the
-  Platform's source; the comments are the documentation.
-- A module that cannot express something is reporting a **finding**, not hitting
-  an obstacle to work around. Take it as an additive minor bump, or record it in
-  the roadmap as an open gap. What a finding may ask for is a shape — a type or a
-  verb. One that can only be closed by naming a library is a Platform change
-  reached through a declarative surface, not a bump here.
-
-<!-- shared-rules:begin -->
-## Rules every Mosaic repository shares
-
-*Generated. The source is `architecture/shared/repository-rules.md`; edit it there
-and run `scripts/shared_rules.py --write` across the fleet. A copy edited in place
-fails its repository's gate, which is the point: these rules were eleven
-hand-kept copies in four variants, and the abridged ones had quietly dropped the
-reasoning while keeping the rules — and in one case dropped a rule outright.*
-
-### What this file may say
-
-**A `CLAUDE.md` states rules, and facts about its own repository. It does not
-state facts about another one — it links instead.**
-
-An audit of all twelve of these files against their source found 74 stale claims.
-None of roughly 180 rules was wrong; 62 of the 74 were facts about somebody
-else's repository. Ownership predicts rot: a fact about this repository stays true
-because whoever changes the code changes the sentence in the same session, and a
-fact about another one dies the moment they edit it with nothing here going red.
-
-The same applies to facts this repository already publishes in a generated
-artefact — counts, versions, what is built. Point at the artefact.
-
-### Decision records live with the code they govern
-
-Each repository owns the records whose *mechanism* it holds — the spec file, the
-lint gate, the conformance corpus, the composition root, the release workflow.
-A decision can bind five repositories and still have exactly one steward.
-
-- **`docs/adr/`**, numbered from 1 in every repository, with `docs/adr/README.md`
-  a **generated** index. Read the index first; it is the bounded thing.
-- **A record's heading carries no number.** The number lives in the filename and
-  the index only, so a record's anchor survives being renumbered.
-- **Cite a record as `repo#N`, and make it a link** — a relative path within a
-  repository, an absolute URL across them, and the bare label only where no URL
-  is possible, such as a code comment or a Dockerfile. The old `ADR NNNN`
-  spelling is refused by a lint: once every repository numbers from 1, that form
-  resolves quietly to a *different* record instead of dangling, and no tool in
-  the fleet could detect it.
-- **Cross-cutting records stay in [`architecture`](https://github.com/mosaic-media/architecture)** —
-  the ones with no enforcing mechanism anywhere: licensing, repository naming and
-  topology, the module tier model.
-
-### Decision records are append-only
-
-An ADR is an account of what was decided and why, at a time. It is evidence, not
-documentation, and its value is that it was not edited afterwards.
-
-- **Never rewrite a record's body** — not to correct it, not to annotate it, not
-  to add "as built, this differs". That turns a record into a running commentary
-  and destroys the thing it is for.
-- **State changes go in the `**Status:**` line and nowhere else** — built, built
-  in part (naming the part), or superseded, wholly or partly.
-- **A changed decision earns a new record that supersedes it**, with its own
-  Context / Decision / Alternatives / Consequences, and both records then point
-  at each other through their Status lines. The old body stays exactly as it was.
-- **An unbuilt decision is not a superseded one.** "Not done yet" belongs in the
-  Status line and the roadmap; only a reversal earns a new record.
-
-### The roadmap is maintained, not consulted
-
-**`docs/roadmap.md` in [`architecture`](https://github.com/mosaic-media/architecture)
-is the single record of where the build is, across every repository.** It stays
-there because a milestone spans repositories by construction. Read it before
-starting, and **update it in the same session as the change that dates it** — not
-in a follow-up, which does not happen.
-
-- A slice that lands is marked landed, **with what it left out named in the same
-  sentence**. "Built" with no qualifier claims the whole slice shipped.
-- Implementation that departed from its record is recorded where it departed.
-  The surprises are the most valuable thing in it.
-- **Do not restate the roadmap here.** A second copy of "what is built" in a
-  `CLAUDE.md` is how the first copy goes stale unnoticed.
-- A capability with no client path is not done — it is
-  [owed](https://github.com/mosaic-media/architecture/blob/main/docs/unreachable-capability.md).
-
-### Demonstrated, not asserted
-
-**Say what you actually ran.** A skipped test is not a passed test, and "it should
-work" is not evidence.
-
-Each repository's container is the authority on its own gate, and the command is
-in that repository's section below. It exists because the checks that matter fail
-*soft*: a missing PostgreSQL skips storage tests and still prints `ok`, a missing
-generator toolchain produces a drift guard that passes by not running. Where the
-container cannot be run, running what you can on the host is better than running
-nothing — **provided you report which checks ran and which did not.** Claiming a
-gate passed when it was not executed is the one thing this rule exists to stop.
-
-### Commit and push
-
-- **Commit and push each repository separately.** They are siblings on disk and
-  independent in git.
-- **Commit author identity** must be `AdamNi-7080 <anicholls41@gmail.com>`. If git
-  has no identity configured, set it repo-locally rather than globally.
-- **Push once the change has been demonstrated working in this session.** Commit
-  locally and say so otherwise. **Force-push always requires asking.**
-<!-- shared-rules:end -->
+**There is no verify workflow in this repository.** `.github/workflows/pages.yml`
+is the only workflow and it publishes the README and the records to GitHub Pages
+through a reusable workflow in `architecture`. Nothing refuses a push on your
+behalf — the container is the whole gate, and running it is on you.
