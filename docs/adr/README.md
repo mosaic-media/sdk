@@ -15,7 +15,8 @@ A record is cited from another repository as `sdk#N`, written as a link to the f
 | 7 | [go-plugin is the extension module harness](0007-go-plugin-as-the-extension-harness.md) | Accepted; built. |
 | 8 | [OpenTelemetry is the telemetry implementation](0008-opentelemetry-is-the-telemetry-implementation.md) | Built in part, and partly superseded by [sdk#10](0010-the-sdk-carries-no-implementation.md): the decision that OpenTelemetry is Mosaic's telemetry implementation stands in every process, and the dependency clause — that the SDK may require the OTel API modules — is reversed. |
 | 9 | [The module metric surface](0009-the-module-metric-surface.md) | Built. |
-| 10 | [The SDK carries no implementation](0010-the-sdk-carries-no-implementation.md) | Proposed. The SDK's go.mod still requires four OpenTelemetry API modules as this is written. |
+| 10 | [The SDK carries no implementation](0010-the-sdk-carries-no-implementation.md) | Accepted. The SDK's go.mod still requires four OpenTelemetry API modules as this is written. |
+| 11 | [The MPL-2.0 dependency, checked rather than assumed](0011-the-mpl-dependency-check-and-its-conclusion.md) | Accepted, and it is an analysis rather than a change — nothing is built or altered by it. |
 
 ## Records this repository depends on
 
@@ -60,6 +61,7 @@ Decisions held elsewhere that these records cite. They bind work here and are no
 - [platform#47](https://github.com/mosaic-media/platform/blob/main/docs/adr/0047-artwork-is-a-candidate-set.md)
 - [platform#51](https://github.com/mosaic-media/platform/blob/main/docs/adr/0051-extension-installation-is-user-initiated-and-persistent.md)
 - [platform#81](https://github.com/mosaic-media/platform/blob/main/docs/adr/0081-the-install-key.md)
+- [platform#103](https://github.com/mosaic-media/platform/blob/main/docs/adr/0103-module-output-is-telemetry-and-containment-stays-one-mechanism.md)
 
 **`supervisor`**
 

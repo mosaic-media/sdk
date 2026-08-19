@@ -10,9 +10,12 @@ to hold. With [platform#39](https://github.com/mosaic-media/platform/blob/main/d
 [platform#51](https://github.com/mosaic-media/platform/blob/main/docs/adr/0051-extension-installation-is-user-initiated-and-persistent.md) this
 is what supersedes [platform#4](https://github.com/mosaic-media/platform/blob/main/docs/adr/0004-static-go-module-composition.md)'s rejection
 of module RPC **for the extension tier only**; core modules stay statically
-linked under [architecture#3](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0003-two-module-tiers.md). Not done: the MPL-2.0
-compatibility check this record asks to be "done and recorded" is recorded
-nowhere, and both Open questions below are still open.
+linked under [architecture#3](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0003-two-module-tiers.md). Both outstanding items are now
+discharged: the MPL-2.0 check this record asks to be "done and recorded" is
+[sdk#11](0011-the-mpl-dependency-check-and-its-conclusion.md), and both Open
+questions below are answered by
+[platform#103](https://github.com/mosaic-media/platform/blob/main/docs/adr/0103-module-output-is-telemetry-and-containment-stays-one-mechanism.md),
+recorded there because both mechanisms are the Platform's.
 **Date:** 2026-07-24
 
 Implements [platform#39](https://github.com/mosaic-media/platform/blob/main/docs/adr/0039-extension-module-boundary.md) within the decision it

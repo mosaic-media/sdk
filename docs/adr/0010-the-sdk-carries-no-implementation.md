@@ -1,6 +1,6 @@
 # The SDK carries no implementation
 
-**Status:** Proposed. The SDK's `go.mod` still requires four OpenTelemetry API modules as this is written.
+**Status:** Accepted. The SDK's `go.mod` still requires four OpenTelemetry API modules as this is written.
 **Date:** 2026-08-10
 
 Reverses the dependency clause of
