@@ -10,11 +10,11 @@ A record is cited from another repository as `sdk#N`, written as a link to the f
 | 2 | [Modules as typed capability providers](0002-modules-as-typed-capability-providers.md) | Accepted |
 | 3 | [Rich metadata: the descriptive surface grows a preview](0003-rich-metadata-preview.md) | Accepted. |
 | 4 | [Module-contributed settings UI](0004-module-contributed-settings-ui.md) | Accepted (built) |
-| 5 | [Modules observe through the SDK](0005-modules-observe-through-the-sdk.md) | Built, and partly superseded by [sdk#8](0008-opentelemetry-is-the-telemetry-implementation.md): the decision stands — the Platform owns the observability plane, the SDK declares the surface, a module configures nothing — and the rejection of the OpenTelemetry API does not. |
+| 5 | [Modules observe through the SDK](0005-modules-observe-through-the-sdk.md) | Accepted. |
 | 6 | [The artwork provider role](0006-the-artwork-provider-role.md) | Accepted; built. |
 | 7 | [go-plugin is the extension module harness](0007-go-plugin-as-the-extension-harness.md) | Accepted; built. |
-| 8 | [OpenTelemetry is the telemetry implementation](0008-opentelemetry-is-the-telemetry-implementation.md) | Built in part, and partly superseded by [sdk#10](0010-the-sdk-carries-no-implementation.md): the decision that OpenTelemetry is Mosaic's telemetry implementation stands in every process, and the dependency clause — that the SDK may require the OTel API modules — is reversed. |
-| 9 | [The module metric surface](0009-the-module-metric-surface.md) | Built. |
+| 8 | [OpenTelemetry is the telemetry implementation](0008-opentelemetry-is-the-telemetry-implementation.md) | Accepted. |
+| 9 | [The module metric surface](0009-the-module-metric-surface.md) | Accepted. Built. |
 | 10 | [The SDK carries no implementation](0010-the-sdk-carries-no-implementation.md) | Accepted. The SDK's go.mod still requires four OpenTelemetry API modules as this is written. |
 | 11 | [The MPL-2.0 dependency, checked rather than assumed](0011-the-mpl-dependency-check-and-its-conclusion.md) | Accepted, and it is an analysis rather than a change — nothing is built or altered by it. |
 
